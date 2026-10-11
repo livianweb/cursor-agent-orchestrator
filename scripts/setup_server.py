@@ -43,6 +43,30 @@ ALLOWED_INSTALL_FLAGS = frozenset(
 )
 
 
+def _askbox_env_complete(env: dict[str, str]) -> bool:
+    url = (env.get("ASKBOX_API_URL") or "").strip()
+    token = (env.get("ASKBOX_ACCESS_TOKEN") or "").strip()
+    return bool(url and token)
+
+
+def _install_env_from_body(data: dict[str, Any]) -> dict[str, str]:
+    env = {k: v for k, v in os.environ.items()}
+    url = data.get("askbox_api_url")
+    token = data.get("askbox_access_token")
+    if isinstance(url, str) and url.strip():
+        env["ASKBOX_API_URL"] = url.strip()
+    if isinstance(token, str) and token.strip():
+        env["ASKBOX_ACCESS_TOKEN"] = token.strip()
+    return env
+
+
+def _default_install_flags_if_omitted(env: dict[str, str]) -> list[str]:
+    """Si el cliente no envía ``flags``, usar --merge-apply con askbox completo."""
+    if _askbox_env_complete(env):
+        return ["--merge-apply"]
+    return []
+
+
 def _lan_ip() -> str:
     import socket
 
@@ -139,6 +163,19 @@ class SetupHandler(SimpleHTTPRequestHandler):
         if self.path.rstrip("/") == "/api/auto-update":
             self._send_json(200, auto_update_status(ROOT))
             return
+        if self.path.rstrip("/") == "/api/setup-config":
+            url = os.environ.get("ASKBOX_API_URL", "").strip()
+            token_ok = bool(os.environ.get("ASKBOX_ACCESS_TOKEN", "").strip())
+            complete = bool(url and token_ok)
+            self._send_json(
+                200,
+                {
+                    "askbox_api_url": url,
+                    "askbox_token_configured": token_ok,
+                    "default_merge_apply": complete,
+                },
+            )
+            return
         super().do_GET()
 
     def do_POST(self) -> None:
@@ -166,7 +203,11 @@ class SetupHandler(SimpleHTTPRequestHandler):
 
         try:
             target = validate_install_path(data.get("path", ""))
-            flags = normalize_flags(data.get("flags"))
+            install_env = _install_env_from_body(data)
+            if "flags" in data:
+                flags = normalize_flags(data.get("flags"))
+            else:
+                flags = _default_install_flags_if_omitted(install_env)
         except ValueError as e:
             self._send_json(400, {"ok": False, "error": str(e)})
             return
@@ -190,7 +231,7 @@ class SetupHandler(SimpleHTTPRequestHandler):
                 capture_output=True,
                 text=True,
                 timeout=600,
-                env=os.environ.copy(),
+                env=install_env,
             )
         except subprocess.TimeoutExpired:
             self._send_json(504, {"ok": False, "error": "install superó el tiempo límite (600s)"})
@@ -256,7 +297,9 @@ def main() -> None:
         print("  Auth:   CONFIGURE_TOKEN activo (cabecera X-Configure-Token)")
     else:
         print("  Aviso:  sin CONFIGURE_TOKEN — cualquier cliente en la LAN puede llamar a POST /api/install")
-    print("  API:    POST /api/install  {\"path\": \"/ruta/absoluta\", \"flags\": []}")
+    print("  API:    GET  /api/setup-config  (askbox en env del servidor, sin token)")
+    print("          POST /api/install  {\"path\": \"/ruta/absoluta\", \"flags\": [...]}")
+    print("          (si omites flags y ASKBOX_* está completo en env → --merge-apply por defecto)")
     print("          GET/POST /api/auto-update  (cron diario del kit)")
 
     try:

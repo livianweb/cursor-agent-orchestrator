@@ -19,6 +19,8 @@
 #   --no-template   no copia plantillas de convenciones
 #
 # Política por defecto: idéntico → sin cambios | distinto → skip + aviso
+# Con ASKBOX_API_URL + ASKBOX_ACCESS_TOKEN en el entorno y sin --force/--merge/--merge-apply
+# explícitos: equivale a --merge-apply (fusión askbox aplicada con backup).
 # Con --merge: askbox analiza kit vs proyecto; sin ASKBOX_* → aviso + side-by-side en .merge-proposal
 # Tras --merge/--merge-apply: informe de directivas contradictorias en
 #   .cursor/install-merge-policy-report.md (o .merge-proposal si no hay askbox)
@@ -54,15 +56,16 @@ TARGET_DIR=""
 FORCE=0
 MERGE=0
 MERGE_APPLY=0
+MERGE_CONFLICT_EXPLICIT=0
 DRY_RUN=0
 COPY_TEMPLATE=1
 
 for arg in "$@"; do
   case "$arg" in
     --wizard) WIZARD=1 ;;
-    --force) FORCE=1 ;;
-    --merge) MERGE=1 ;;
-    --merge-apply) MERGE=1; MERGE_APPLY=1 ;;
+    --force) FORCE=1; MERGE_CONFLICT_EXPLICIT=1 ;;
+    --merge) MERGE=1; MERGE_CONFLICT_EXPLICIT=1 ;;
+    --merge-apply) MERGE=1; MERGE_APPLY=1; MERGE_CONFLICT_EXPLICIT=1 ;;
     --dry-run) DRY_RUN=1 ;;
     --no-template) COPY_TEMPLATE=0 ;;
     -h|--help)
@@ -93,6 +96,12 @@ if [ -z "$TARGET_DIR" ]; then
   echo "ERROR: indica ruta de proyecto: ./install.sh /ruta/proyecto" >&2
   echo "       o ejecuta sin argumentos para abrir el asistente: ./install.sh" >&2
   exit 1
+fi
+
+if [ "$MERGE_CONFLICT_EXPLICIT" = "0" ] && [ -n "${ASKBOX_API_URL:-}" ] && [ -n "${ASKBOX_ACCESS_TOKEN:-}" ]; then
+  MERGE=1
+  MERGE_APPLY=1
+  echo "Askbox (ASKBOX_*): modo por defecto --merge-apply (desmarca en Avanzado del wizard o usa --force/--merge explícitos)."
 fi
 
 if [ "$FORCE" = "1" ] && [ "$MERGE" = "1" ]; then
@@ -126,7 +135,7 @@ if [ "$MERGE" = "1" ]; then
 elif [ "$FORCE" = "1" ]; then
   echo "Modo: --force (backup + sobrescribe si difiere)"
 else
-  echo "Conflictos: por defecto skip; prueba --merge o --force."
+  echo "Conflictos: skip (configura ASKBOX_* para --merge-apply por defecto, o usa --merge / --force)."
 fi
 [ "$DRY_RUN" = "1" ] && echo "Modo: --dry-run (no se escribe nada)"
 echo

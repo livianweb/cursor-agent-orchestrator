@@ -24,6 +24,7 @@ const installLogDetails = document.getElementById("install-log-details");
 const installLog = document.getElementById("install-log");
 const pathInput = document.getElementById("project-path");
 const forceFlag = document.getElementById("flag-force");
+const mergeApplyFlag = document.getElementById("flag-merge-apply");
 const mergeFlags = installForm?.querySelectorAll('input[value="--merge"], input[value="--merge-apply"]');
 
 function setInstallUi(state, message) {
@@ -126,11 +127,17 @@ if (installForm) {
       headers["X-Configure-Token"] = token;
     }
 
+    const askboxUrl = (askboxUrlInput?.value || "").trim();
+    const askboxToken = (askboxTokenInput?.value || "").trim();
+    const payload = { path, flags };
+    if (askboxUrl) payload.askbox_api_url = askboxUrl;
+    if (askboxToken) payload.askbox_access_token = askboxToken;
+
     try {
       const res = await fetch("/api/install", {
         method: "POST",
         headers,
-        body: JSON.stringify({ path, flags }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
       const log = data.log || data.error || res.statusText || "";
@@ -156,6 +163,55 @@ const askboxUrlInput = document.getElementById("askbox-api-url");
 const askboxTokenInput = document.getElementById("askbox-access-token");
 const askboxCopyBtn = document.getElementById("askbox-copy-env");
 const askboxEnvStatus = document.getElementById("askbox-env-status");
+
+function isAskboxComplete() {
+  const url = (askboxUrlInput?.value || "").trim();
+  const token = (askboxTokenInput?.value || "").trim();
+  const serverToken = askboxTokenInput?.getAttribute("data-server-token") === "1";
+  return Boolean(url && (token || serverToken));
+}
+
+function syncDefaultMergeApply() {
+  if (!mergeApplyFlag || forceFlag?.checked) return;
+  const mergeOnly = installForm?.querySelector('input[value="--merge"]');
+  if (isAskboxComplete()) {
+    mergeApplyFlag.checked = true;
+    if (mergeOnly) mergeOnly.checked = false;
+  } else {
+    mergeApplyFlag.checked = false;
+    if (mergeOnly) mergeOnly.checked = false;
+  }
+}
+
+async function loadSetupConfig() {
+  try {
+    const res = await fetch("/api/setup-config");
+    const data = await res.json().catch(() => ({}));
+    if (data.askbox_api_url && askboxUrlInput && !askboxUrlInput.value.trim()) {
+      askboxUrlInput.value = data.askbox_api_url;
+    }
+    if (data.askbox_token_configured && askboxTokenInput) {
+      askboxTokenInput.setAttribute("data-server-token", "1");
+    }
+    syncDefaultMergeApply();
+  } catch {
+    syncDefaultMergeApply();
+  }
+}
+
+if (askboxUrlInput) {
+  askboxUrlInput.addEventListener("input", syncDefaultMergeApply);
+}
+if (askboxTokenInput) {
+  askboxTokenInput.addEventListener("input", () => {
+    if (askboxTokenInput.value.trim()) {
+      askboxTokenInput.removeAttribute("data-server-token");
+    }
+    syncDefaultMergeApply();
+  });
+}
+
+loadSetupConfig();
 
 function shellQuote(value) {
   return `'${String(value).replace(/'/g, `'\\''`)}'`;

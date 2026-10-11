@@ -119,7 +119,10 @@ modifica el resto de `.cursor/` (p. ej. `mi-app-conventions.mdc`, hooks, skills 
 ```
 
 - Sin flags: copia lo que falte; si un archivo destino **ya existe y es distinto**, lo **salta**
-  (no pisa nada a ciegas) y te avisa.
+  (no pisa nada a ciegas) y te avisa — **salvo** que `ASKBOX_API_URL` y `ASKBOX_ACCESS_TOKEN`
+  estén en el entorno: entonces el CLI usa **`--merge-apply` por defecto** (mensaje en consola).
+  En el wizard, la misma lógica: askbox completo → «Aplicar fusión» marcado; cámbialo en Avanzado.
+  Ver [`docs/install-merge-defaults.md`](docs/install-merge-defaults.md).
 - `--merge`: mismo nombre y contenido distinto → **fusión asistida** con askbox (`POST /v1/ask`,
   tier `balanced`). Escribe `archivo.merge-proposal` **sin pisar** el destino. Tras instalar,
   genera `.cursor/install-merge-policy-report.md` analizando directivas contradictorias entre

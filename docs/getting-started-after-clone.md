@@ -73,7 +73,12 @@ export ASKBOX_API_URL="https://TU-INSTANCIA/api"
 export ASKBOX_ACCESS_TOKEN="ab_live_…"          # /projects en esa instancia
 ```
 
-En el wizard (`./install.sh`), la sección **Capa A** tiene campos vacíos por defecto y genera estos exports al pulsar **Copiar exports**.
+En el wizard (`./install.sh`), la sección **Capa A** toma la URL del env del servidor si existe
+(`GET /api/setup-config`); el token no se muestra. Con URL + token (formulario o env), **Instalar**
+usa `--merge-apply` por defecto (Avanzado para desmarcar o `--force`). Sin askbox completo:
+skip en conflictos. Detalle: [`install-merge-defaults.md`](install-merge-defaults.md).
+
+Los campos generan exports al pulsar **Copiar para el entorno**.
 
 Reinicia o recarga la sesión del agente para que lea las variables. Sin capa A, askbox-first
 hace fallback a subagentes Cursor (sigue funcionando el kit).
@@ -85,7 +90,7 @@ propios). Solo instala piezas del orquestador; **no borra** tu `*-conventions.md
 skills ajenos al kit.
 
 ```bash
-./install.sh /ruta/a/mi-app                    # seguro: no pisa archivos que ya difieran
+./install.sh /ruta/a/mi-app                    # con ASKBOX_* en env → --merge-apply; sin ellos, skip en conflictos
 ./install.sh /ruta/a/mi-app --dry-run          # simular
 ./install.sh /ruta/a/mi-app --no-template      # sin plantilla de convenciones
 ./install.sh /ruta/a/mi-app --merge            # fusión askbox → *.merge-proposal (+ informe directivas)
