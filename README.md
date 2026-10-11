@@ -19,7 +19,7 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 
 | Archivo | Qué hace |
 |---|---|
-| `.cursor/rules/auto-orchestrator.mdc` | Heurística **plan vs. directo**, niveles de capacidad (`fast`/`balanced`/`strong`/`strong-thinking`) y cómo resolver esos niveles a un slug de modelo concreto en cada sesión (sin listas fijas de slugs en las reglas). |
+| `.cursor/rules/auto-orchestrator.mdc` | Heurística **plan vs. directo**, niveles de capacidad (`fast`/`balanced`/`strong`/`strong-thinking`), resolución dinámica a slug (sin tablas fijas) con **preferencia Composer** para ahorro de coste; escalar a otros modelos solo en `strong*`. |
 | `.cursor/rules/multitask-ownership.mdc` | Evita que Tasks en paralelo se pisen: allowlist/denylist por Task, qué va en serie, qué archivos son "calientes" (ownership único). |
 | `.cursor/skills/plan-implement-verify/SKILL.md` | El flujo paso a paso: Decidir → Plan (si aplica) → Directo (si aplica) → Implement → Verify → Git autopilot, con niveles por tipo de subagente. |
 | `.cursor/skills/git-autopilot/SKILL.md` | Política de auto-commit + auto-push (anula el "solo commit si el usuario lo pide" por defecto de Cursor) y contrato de la pantalla de configuración Git por proyecto. |
