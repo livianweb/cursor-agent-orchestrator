@@ -63,7 +63,29 @@ if [ "$REMOVE" = "1" ]; then
   else
     crontab -r 2>/dev/null || true
   fi
-  rm -f "$STATE_FILE"
+  ISO_NOW="$(date -Iseconds)"
+  python3 - "$STATE_FILE" "$SCHEDULE" "$ISO_NOW" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path, schedule, disabled_at = sys.argv[1:4]
+path = Path(path)
+path.parent.mkdir(parents=True, exist_ok=True)
+path.write_text(
+    json.dumps(
+        {
+            "enabled": False,
+            "schedule": schedule,
+            "disabled_at": disabled_at,
+        },
+        indent=2,
+        ensure_ascii=False,
+    )
+    + "\n",
+    encoding="utf-8",
+)
+PY
   echo "Cron de auto-update eliminado."
   exit 0
 fi

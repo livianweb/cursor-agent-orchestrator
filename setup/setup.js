@@ -40,7 +40,7 @@ const installLog = document.getElementById("install-log");
 const pathInput = document.getElementById("project-path");
 const forceFlag = document.getElementById("flag-force");
 const mergeApplyFlag = document.getElementById("flag-merge-apply");
-const mergeFlags = installForm?.querySelectorAll('input[value="--merge"], input[value="--merge-apply"]');
+const mergeFlags = installForm?.querySelectorAll('input[value="--merge-apply"]');
 
 const askboxUrlInput = document.getElementById("askbox-api-url");
 const askboxTokenInput = document.getElementById("askbox-access-token");
@@ -116,7 +116,7 @@ function collectFlags() {
   installForm.querySelectorAll('input[name="flag"]:checked').forEach((el) => {
     flags.push(el.value);
   });
-  if (flags.includes("--force") && (flags.includes("--merge") || flags.includes("--merge-apply"))) {
+  if (flags.includes("--force") && flags.includes("--merge-apply")) {
     throw new Error("Forzar no se puede combinar con fusión askbox.");
   }
   return flags;
@@ -699,14 +699,7 @@ function isAskboxComplete() {
 
 function syncDefaultMergeApply() {
   if (!mergeApplyFlag || forceFlag?.checked) return;
-  const mergeOnly = installForm?.querySelector('input[value="--merge"]');
-  if (isAskboxComplete()) {
-    mergeApplyFlag.checked = true;
-    if (mergeOnly) mergeOnly.checked = false;
-  } else {
-    mergeApplyFlag.checked = false;
-    if (mergeOnly) mergeOnly.checked = false;
-  }
+  mergeApplyFlag.checked = isAskboxComplete();
 }
 
 async function loadSetupConfig() {
@@ -750,9 +743,14 @@ async function fetchAutoUpdateStatus() {
   try {
     const res = await fetch("/api/auto-update");
     const data = await res.json().catch(() => ({}));
-    if (typeof data.enabled === "boolean") renderAutoUpdateSwitch(data.enabled);
+    if (typeof data.enabled === "boolean") {
+      renderAutoUpdateSwitch(data.enabled);
+    } else {
+      renderAutoUpdateSwitch(true);
+    }
     return data;
   } catch {
+    renderAutoUpdateSwitch(true);
     return null;
   }
 }

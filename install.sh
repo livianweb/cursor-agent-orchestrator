@@ -103,6 +103,15 @@ run_panel_docker() {
   echo "cursor-agent-orchestrator — panel Docker (restart: unless-stopped)"
   docker compose up -d --build
 
+  local cron_installer="$KIT_ROOT/scripts/install-auto-update-cron.sh"
+  local auto_state="$KIT_ROOT/.askbox/auto-update.state"
+  if [ -x "$cron_installer" ] && command -v crontab >/dev/null 2>&1; then
+    if [ ! -f "$auto_state" ]; then
+      echo "Auto-update del kit: activando cron en el host (primera vez)…"
+      bash "$cron_installer" || echo "Aviso: no se pudo instalar cron de auto-update (puedes activarlo en Avanzado)." >&2
+    fi
+  fi
+
   local port
   port="$(panel_configure_port)"
   local url_helper="$KIT_ROOT/scripts/panel-print-urls.sh"

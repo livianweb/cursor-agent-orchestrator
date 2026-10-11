@@ -28,6 +28,7 @@ INSTALL_SH = ROOT / "install.sh"
 sys.path.insert(0, str(ROOT / "scripts"))
 from auto_update_api import (  # noqa: E402
     auto_update_status,
+    bootstrap_auto_update,
     set_auto_update_enabled,
 )
 from installations_registry import (  # noqa: E402
@@ -609,6 +610,8 @@ def main() -> None:
     if not SETUP_DIR.is_dir():
         print(f"ERROR: no existe {SETUP_DIR}", file=sys.stderr)
         sys.exit(1)
+
+    bootstrap_auto_update(ROOT)
 
     httpd = ThreadingHTTPServer((host, port), SetupHandler)
     print("cursor-agent-orchestrator — wizard de configuración")
