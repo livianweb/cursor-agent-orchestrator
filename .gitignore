@@ -1,0 +1,11 @@
+# Backups generados por install.sh en proyectos destino (no deberían vivir en este repo)
+*.bak-*
+
+# Archivos locales comunes
+.DS_Store
+*.swp
+
+# Nunca secretos ni entornos reales en este kit
+.env
+.env.*
+!*.env.example

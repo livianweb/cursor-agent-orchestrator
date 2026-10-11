@@ -1,0 +1,67 @@
+---
+description: Convenciones de desarrollo específicas de <NOMBRE_PROYECTO> (rutas, puertos, stack, dominio).
+alwaysApply: true
+---
+
+# Convenciones de <NOMBRE_PROYECTO>
+
+> Plantilla de partida. Renombra este archivo a `<nombre-proyecto>-conventions.mdc` (quita el
+> sufijo `.template`), rellena las secciones y bórralo o recórtalo si algo no aplica.
+> Esto es lo que CADA proyecto añade encima del paradigma portable de `auto-orchestrator.mdc` /
+> `plan-implement-verify` / `multitask-ownership.mdc`.
+
+## Alcance
+
+- Todo el código del producto vive en `<RUTA_ABSOLUTA_DEL_REPO>`.
+- No editar otros stacks del servidor/monorepo salvo integración explícita acordada con el usuario.
+
+## Puertos y red (si aplica)
+
+- API en el host: **`<PUERTO_API>`**.
+- Web/frontend en el host: **`<PUERTO_WEB>`**.
+- Antes de cambiar puertos, comprobar listeners (`ss`, `docker ps`) para no chocar con otros stacks.
+
+## Integraciones externas sensibles (si aplica)
+
+- Describe aquí el equivalente a "toda llamada a proveedor LLM pasa por `api/app/llm/`": el
+  **único punto de entrada** permitido para hablar con servicios externos (pagos, LLM, email,
+  storage...), y qué queda prohibido fuera de ese punto (p. ej. clientes HTTP directos desde
+  routers/controladores).
+
+## Catálogo / configuración dinámica (si aplica)
+
+- Si hay listas de modelos, planes, tarifas, etc. que deban vivir en BD/config en vez de
+  hardcodeadas en el código de producción, documenta la tabla/fuente de verdad aquí.
+
+## Build / infraestructura
+
+- Cómo se levanta el proyecto (`docker compose`, `make`, scripts propios).
+- Qué operaciones son destructivas y requieren cuidado (`down`, migraciones irreversibles, etc.).
+- Qué otros stacks del mismo servidor/monorepo NO se deben tocar.
+
+## Secretos (recomendado: crea tu propia rule `no-secret-leak.mdc`)
+
+- Dónde viven los secretos (variables de entorno, vault, BD cifrada) y qué nunca debe aparecer
+  en código fuente, commits, fixtures públicos o assets servidos al navegador.
+- Qué puede devolver la API al cliente (metadatos) vs. qué nunca se expone (valores completos).
+
+## Orquestación (agentes)
+
+- El padre en **Auto** sigue `.cursor/rules/auto-orchestrator.mdc` y el skill
+  `plan-implement-verify` (decide plan vs. directo; plan vía Task sin OK del usuario;
+  **niveles de capacidad** `fast` / `balanced` / `strong` / `strong-thinking`, slug resuelto al
+  catálogo de la sesión — no listas normativas de slugs en reglas).
+- Si este proyecto convive con otros stacks fuera de su alcance, indícalo aquí explícitamente
+  (igual que askbox excluye integrarse con proyectos vecinos no acordados).
+
+## Comunicación
+
+- Idioma con el usuario: **`<ES/EN/...>`**, claro y conciso.
+- Código: comentarios en `<idioma>` o inglés técnico breve; coherente con el archivo vecino.
+
+## Stack de referencia
+
+- Lenguaje/framework backend: `<...>`.
+- Lenguaje/framework frontend: `<...>`.
+- Base de datos / cache / colas: `<...>`.
+- Contrato(s) principal(es) de la API: `<...>`.
