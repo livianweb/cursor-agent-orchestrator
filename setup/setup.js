@@ -56,8 +56,12 @@ const btnBrowse = document.getElementById("btn-browse");
 let browsePath = null;
 
 function showInstallPanel(show) {
-  installPanel?.classList.toggle("hidden", !show);
-  if (show) pathInput?.focus();
+  if (!installPanel) return;
+  installPanel.classList.toggle("hidden", !show);
+  if (show) {
+    installPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    pathInput?.focus();
+  }
 }
 
 btnNewInstall?.addEventListener("click", () => showInstallPanel(true));
@@ -73,7 +77,7 @@ function setInstallFormLocked(locked) {
   });
   if (btnBrowse) {
     if (locked) btnBrowse.setAttribute("data-was-disabled", btnBrowse.disabled ? "1" : "0");
-    btnBrowse.disabled = locked;
+    if (locked) btnBrowse.disabled = true;
     else if (btnBrowse.getAttribute("data-was-disabled") === "0") btnBrowse.disabled = false;
   }
 }
