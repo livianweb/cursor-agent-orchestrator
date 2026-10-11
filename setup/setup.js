@@ -7,6 +7,31 @@ function apiHeaders(json = true) {
 }
 
 /** Errores API legibles (nunca volcar stderr crudo de git en alert). */
+/** Misma regla que scripts/askbox_url.py: host sin path → /api; no duplicar …/api/api. */
+function normalizeAskboxApiUrl(raw) {
+  const text = (raw || "").trim().replace(/\/+$/, "");
+  if (!text) return "";
+  try {
+    const u = new URL(text);
+    if (!u.protocol || !u.hostname) return text;
+    const path = u.pathname.replace(/\/+$/, "");
+    if (!path || path === "/") return `${u.origin}/api`;
+    if (path.endsWith("/api")) return text;
+    return `${text}/api`;
+  } catch {
+    return text;
+  }
+}
+
+function applyAskboxUrlNormalization(input) {
+  if (!input) return "";
+  const normalized = normalizeAskboxApiUrl(input.value);
+  if (normalized && normalized !== input.value.trim()) {
+    input.value = normalized;
+  }
+  return normalized || (input.value || "").trim();
+}
+
 function formatServerError(data, fallback) {
   const msg = (data?.user_error || data?.error || "").trim();
   if (!msg) return fallback || "Operación fallida.";
@@ -448,7 +473,9 @@ btnKitUpdate?.addEventListener("click", runKitUpdate);
 function openEditModal(row) {
   editTargetPath = row.path;
   if (editPathEl) editPathEl.textContent = row.path;
-  if (editAskboxUrl) editAskboxUrl.value = row.askbox_api_url || "";
+  if (editAskboxUrl) {
+    editAskboxUrl.value = normalizeAskboxApiUrl(row.askbox_api_url || "");
+  }
   if (editAskboxToken) {
     editAskboxToken.value = "";
     editAskboxToken.placeholder = row.askbox_token_last4
@@ -478,9 +505,10 @@ document.getElementById("edit-backdrop")?.addEventListener("click", closeEditMod
 editForm?.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   if (!editTargetPath) return;
+  const askboxUrl = applyAskboxUrlNormalization(editAskboxUrl);
   const payload = {
     path: editTargetPath,
-    askbox_api_url: (editAskboxUrl?.value || "").trim(),
+    askbox_api_url: askboxUrl,
   };
   const token = (editAskboxToken?.value || "").trim();
   if (token) payload.askbox_access_token = token;
@@ -701,7 +729,7 @@ if (installForm) {
     showLog("", false);
     if (installLogDetails) installLogDetails.open = false;
 
-    const askboxUrl = (askboxUrlInput?.value || "").trim();
+    const askboxUrl = applyAskboxUrlNormalization(askboxUrlInput);
     const askboxToken = (askboxTokenInput?.value || "").trim();
     const payload = { path, flags, auto_update: autoUpdateEnabled?.checked ?? true };
     if (askboxUrl) payload.askbox_api_url = askboxUrl;
@@ -753,6 +781,9 @@ async function loadSetupConfig() {
     const res = await fetch("/api/setup-config");
     const data = await res.json().catch(() => ({}));
     serverAskboxTokenConfigured = Boolean(data.askbox_token_configured);
+    if (data.askbox_api_url && askboxUrlInput && !askboxUrlInput.value.trim()) {
+      askboxUrlInput.value = normalizeAskboxApiUrl(data.askbox_api_url);
+    }
     if (data.askbox_token_configured && askboxTokenInput) {
       askboxTokenInput.setAttribute("data-server-token", "1");
       if (!askboxTokenInput.value.trim()) {
@@ -765,7 +796,13 @@ async function loadSetupConfig() {
   }
 }
 
-if (askboxUrlInput) askboxUrlInput.addEventListener("input", syncDefaultMergeApply);
+if (askboxUrlInput) {
+  askboxUrlInput.addEventListener("blur", () => applyAskboxUrlNormalization(askboxUrlInput));
+  askboxUrlInput.addEventListener("input", syncDefaultMergeApply);
+}
+if (editAskboxUrl) {
+  editAskboxUrl.addEventListener("blur", () => applyAskboxUrlNormalization(editAskboxUrl));
+}
 if (askboxTokenInput) {
   askboxTokenInput.addEventListener("input", () => {
     if (askboxTokenInput.value.trim()) askboxTokenInput.removeAttribute("data-server-token");

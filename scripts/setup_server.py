@@ -43,6 +43,7 @@ from kit_manifest import kit_fingerprint  # noqa: E402
 from kit_update_api import kit_git_status, run_kit_pull_only  # noqa: E402
 from browse_fs import list_subdirs, resolve_browse_path  # noqa: E402
 from uninstall_kit import uninstall_project  # noqa: E402
+from askbox_url import normalize_askbox_api_url  # noqa: E402
 
 ALLOWED_INSTALL_FLAGS = frozenset(
     {
@@ -76,20 +77,6 @@ def _install_env_from_body(
     if isinstance(token, str) and token.strip():
         env["ASKBOX_ACCESS_TOKEN"] = token.strip()
     return env
-
-
-def normalize_askbox_api_url(raw: str) -> str:
-    """Base de API askbox: añade /api si solo se indicó el host (p. ej. askbox.example.com)."""
-    text = raw.strip().rstrip("/")
-    if not text:
-        return ""
-    parsed = urlparse(text)
-    if not parsed.scheme or not parsed.netloc:
-        return text
-    path = (parsed.path or "").strip("/")
-    if not path:
-        return f"{parsed.scheme}://{parsed.netloc}/api"
-    return text
 
 
 def _askbox_persist_kwargs(data: dict[str, Any]) -> dict[str, str | None]:
@@ -261,7 +248,7 @@ class SetupHandler(SimpleHTTPRequestHandler):
             self._send_json(200, payload)
             return
         if path_only == "/api/setup-config":
-            url = os.environ.get("ASKBOX_API_URL", "").strip()
+            url = normalize_askbox_api_url(os.environ.get("ASKBOX_API_URL", "") or "")
             token_ok = bool(os.environ.get("ASKBOX_ACCESS_TOKEN", "").strip())
             complete = bool(url and token_ok)
             self._send_json(
