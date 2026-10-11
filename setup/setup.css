@@ -210,3 +210,173 @@ code {
 .foot p {
   margin: 0;
 }
+
+.card--install {
+  border-left-width: 4px;
+}
+
+.install-form {
+  margin-top: 0.5rem;
+}
+
+.field {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--text);
+}
+
+.field input[type="text"] {
+  width: 100%;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--accent-b);
+  outline-offset: 1px;
+}
+
+.flags {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.flags legend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.check {
+  display: block;
+  font-size: 0.9rem;
+  margin: 0.35rem 0;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.check input {
+  margin-right: 0.45rem;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.btn-primary {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.55rem 1.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--accent-b);
+  background: var(--accent-b);
+  color: #0f1419;
+  cursor: pointer;
+}
+
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.btn-primary:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.btn-secondary {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  filter: brightness(1.06);
+}
+
+.askbox-form {
+  margin-top: 0.35rem;
+}
+
+.env-preview {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 1rem;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  color: var(--muted);
+  min-height: 3.5rem;
+}
+
+.form-status {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.form-status[data-kind="ok"] {
+  color: var(--accent-a);
+}
+
+.form-status[data-kind="error"] {
+  color: #f87171;
+}
+
+.form-status[data-kind="busy"] {
+  color: var(--accent-b);
+}
+
+.install-log-wrap {
+  margin: 1rem 0;
+}
+
+.install-log-wrap.hidden {
+  display: none;
+}
+
+.log-title {
+  font-size: 0.95rem;
+  margin: 0 0 0.35rem;
+}
+
+.install-log {
+  margin: 0;
+  max-height: 16rem;
+  overflow: auto;
+  padding: 0.85rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

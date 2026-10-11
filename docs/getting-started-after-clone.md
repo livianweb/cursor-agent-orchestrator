@@ -9,18 +9,31 @@ por separado; la configuración tiene **tres capas** (ver también [`git-and-ask
 |-----|----------------|
 | Clonar el kit | `git clone https://github.com/livianweb/cursor-agent-orchestrator.git` |
 | Entrar al repo | `cd cursor-agent-orchestrator` |
-| Asistente visual (capas A/B/C) | `./configure` |
-| Instalar en un proyecto | `./install.sh /ruta/a/tu-proyecto` |
+| Wizard (guía + instalar en UI) | `./install.sh` o `./configure` |
+| Instalar por CLI | `./install.sh /ruta/a/tu-proyecto` |
 
-`./configure` sirve `setup/index.html` en todas las interfaces (`CONFIGURE_HOST`, por defecto
-`0.0.0.0`) en el puerto `CONFIGURE_PORT` (por defecto `8765`). En la consola verás
-`http://127.0.0.1:8765/` y, si hay IP LAN, `http://<ip-lan>:8765/` para abrir desde otro PC.
+`./install.sh` sin argumentos arranca el servidor del wizard (`scripts/setup_server.py`) en
+`CONFIGURE_HOST` (por defecto `0.0.0.0`) y `CONFIGURE_PORT` (por defecto `8765`). En la consola
+verás `http://127.0.0.1:8765/` y, si hay IP LAN, `http://<ip-lan>:8765/` para abrir desde otro PC.
 
-- **Misma máquina:** navegador en `http://127.0.0.1:8765/` (deja `./configure` en marcha).
-- **Otro PC en la red (p. ej. ASUS):** usa la URL **Red** que imprime el script (`http://<ip-del-host>:8765/`).
-  Comprueba con `ss -tlnp | grep 8765` que escucha `0.0.0.0:8765`, no solo `127.0.0.1` (clone antiguo o proceso viejo).
-- **Sin red / firewall:** `./configure --open-file` o `xdg-open setup/index.html`.
-- Solo localhost en HTTP: `CONFIGURE_HOST=127.0.0.1 ./configure`. Sin Python: `./configure --print`.
+- **Misma máquina:** navegador en `http://127.0.0.1:8765/` (deja `./install.sh` en marcha).
+- **Otro PC en la red:** usa la URL **Red** que imprime el script.
+  Comprueba con `ss -tlnp | grep 8765` que escucha `0.0.0.0:8765`, no solo `127.0.0.1` (proceso
+  antiguo con `python3 -m http.server` sin API — mátalo y vuelve a ejecutar `./install.sh`).
+- **Hard refresh** en el navegador (`Ctrl+Shift+R`) si ves la sección «Clonar e instalar» obsoleta.
+- **Sin red / firewall:** `./configure --open-file` (solo lectura; Instalar requiere el servidor).
+- Solo localhost: `CONFIGURE_HOST=127.0.0.1 ./install.sh`. Sin Python: `./configure --print`.
+
+### API del wizard
+
+| Método | Ruta | Cuerpo |
+|--------|------|--------|
+| `GET` | `/api/health` | — |
+| `POST` | `/api/install` | `{ "path": "/ruta/absoluta", "flags": ["--dry-run"] }` → JSON con `ok`, `log`, `exit_code` |
+
+**Seguridad en LAN:** cualquier equipo en la red local puede llamar a `POST /api/install` y
+escribir en rutas del host. Mitigación opcional: `export CONFIGURE_TOKEN=…` y cabecera
+`X-Configure-Token` (o `Authorization: Bearer …`) en la petición.
 
 Opciones útiles:
 
@@ -32,22 +45,27 @@ Opciones útiles:
 
 ## Paso a paso (≈5 minutos)
 
-### 1. Clonar y abrir la guía
+### 1. Clonar y abrir el wizard
 
 ```bash
 git clone https://github.com/livianweb/cursor-agent-orchestrator.git
 cd cursor-agent-orchestrator
-./configure
+./install.sh
 ```
+
+En la UI: **Ruta del proyecto** (absoluta) → **Instalar** (capa B).
 
 ### 2. Capa A — Askbox LLM (entorno del agente Cursor)
 
 En el host donde corre Cursor (o en el env del agente), **no** en git:
 
 ```bash
-export ASKBOX_API_URL="http://127.0.0.1:8066"   # o tu URL pública /api
-export ASKBOX_ACCESS_TOKEN="ab_live_…"          # /projects en askbox
+# Sustituye por la URL de tu instancia (dominio o IP; cada cliente puede ser distinto)
+export ASKBOX_API_URL="https://TU-INSTANCIA/api"
+export ASKBOX_ACCESS_TOKEN="ab_live_…"          # /projects en esa instancia
 ```
+
+En el wizard (`./install.sh`), la sección **Capa A** tiene campos vacíos por defecto y genera estos exports al pulsar **Copiar exports**.
 
 Reinicia o recarga la sesión del agente para que lea las variables. Sin capa A, askbox-first
 hace fallback a subagentes Cursor (sigue funcionando el kit).
@@ -111,7 +129,7 @@ Mejoras a `.cursor/rules` o `.cursor/skills` del kit → commit aquí → push a
 
 - **No** sustituye la documentación del producto askbox.
 - **No** configura secretos en el repo (tokens van en env o en gh).
-- La guía visual del kit: `setup/` y `./configure`.
+- La guía visual del kit: `setup/` y `./install.sh` (wizard).
 
 ## Referencias
 

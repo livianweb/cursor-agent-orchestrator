@@ -6,6 +6,8 @@
 # Solo copia piezas del orquestador; no borra ni toca archivos fuera de la lista.
 #
 # Uso:
+#   ./install.sh                    asistente visual (HTTP :8765, setup/ + API install)
+#   ./install.sh --wizard           igual que sin argumentos
 #   ./install.sh [RUTA_PROYECTO_DESTINO] [opciones]
 #
 # Opciones:
@@ -30,8 +32,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MERGE_HELPER="$SCRIPT_DIR/scripts/install-merge-askbox.py"
+WIZARD_HELPER="$SCRIPT_DIR/scripts/run-wizard.sh"
 
-TARGET_DIR="."
+WIZARD=0
+TARGET_DIR=""
 FORCE=0
 MERGE=0
 MERGE_APPLY=0
@@ -40,21 +44,38 @@ COPY_TEMPLATE=1
 
 for arg in "$@"; do
   case "$arg" in
+    --wizard) WIZARD=1 ;;
     --force) FORCE=1 ;;
     --merge) MERGE=1 ;;
     --merge-apply) MERGE=1; MERGE_APPLY=1 ;;
     --dry-run) DRY_RUN=1 ;;
     --no-template) COPY_TEMPLATE=0 ;;
     -h|--help)
-      sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     --*) echo "Opción desconocida: $arg (usa --help)" >&2; exit 1 ;;
     *)
+      if [ -n "$TARGET_DIR" ]; then
+        echo "ERROR: solo una ruta destino; sobra: $arg" >&2
+        exit 1
+      fi
       TARGET_DIR="$arg"
       ;;
   esac
 done
+
+if [ "$WIZARD" = "1" ] || [ $# -eq 0 ]; then
+  if [ ! -x "$WIZARD_HELPER" ]; then
+    chmod +x "$WIZARD_HELPER" 2>/dev/null || true
+  fi
+  exec bash "$WIZARD_HELPER"
+fi
+
+if [ -z "$TARGET_DIR" ]; then
+  echo "ERROR: falta RUTA_PROYECTO_DESTINO (o ejecuta ./install.sh sin argumentos para el wizard)." >&2
+  exit 1
+fi
 
 if [ "$FORCE" = "1" ] && [ "$MERGE" = "1" ]; then
   echo "ERROR: --force y --merge/--merge-apply son incompatibles." >&2

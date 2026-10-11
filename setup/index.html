@@ -14,66 +14,104 @@
       <h1>Configuración post-clone</h1>
       <p class="lede">
         Tres capas independientes. Esta guía vive en el <strong>repo del orquestador</strong>
-        (<code>setup/</code> y <code>./configure</code>).
+        (<code>setup/</code> y <code>./install.sh</code> sin argumentos).
       </p>
     </div>
   </header>
 
   <main id="main" class="wrap">
-    <section class="card card--info" aria-labelledby="clone-heading">
-      <h2 id="clone-heading">0. Clonar e instalar</h2>
-      <p>URL del repositorio del kit (sustituye si usas un fork):</p>
-      <div class="cmd" data-copy="git clone https://github.com/livianweb/cursor-agent-orchestrator.git&#10;cd cursor-agent-orchestrator&#10;./configure">
-        <pre><code>git clone https://github.com/livianweb/cursor-agent-orchestrator.git
-cd cursor-agent-orchestrator
-./configure</code></pre>
-        <button type="button" class="copy">Copiar</button>
-      </div>
-      <p>Instalar en <em>tu</em> aplicación — repo <strong>nuevo o existente</strong> (capa B):</p>
-      <div class="cmd" data-copy="./install.sh /ruta/a/tu-proyecto">
-        <pre><code>./install.sh /ruta/a/tu-proyecto</code></pre>
-        <button type="button" class="copy">Copiar</button>
+    <section class="card card--b card--install" aria-labelledby="install-heading">
+      <span class="badge">Capa B</span>
+      <h2 id="install-heading">Instalar en tu proyecto</h2>
+      <p>
+        Ruta absoluta del repo donde quieres copiar rules y skills del orquestador
+        (nuevo o existente). Equivale a <code>./install.sh /ruta</code> en la terminal.
+      </p>
+      <form id="install-form" class="install-form" novalidate>
+        <label class="field" for="project-path">
+          <span class="field-label">Ruta del proyecto</span>
+          <input
+            id="project-path"
+            name="path"
+            type="text"
+            required
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="/ruta/absoluta/mi-app"
+          />
+        </label>
+        <fieldset class="flags" aria-describedby="flags-hint">
+          <legend>Opciones (opcional)</legend>
+          <label class="check"><input type="checkbox" name="flag" value="--dry-run" /> Simular (<code>--dry-run</code>)</label>
+          <label class="check"><input type="checkbox" name="flag" value="--no-template" /> Sin plantilla de convenciones</label>
+          <label class="check"><input type="checkbox" name="flag" value="--merge" /> Fusión askbox (<code>--merge</code>)</label>
+          <label class="check"><input type="checkbox" name="flag" value="--merge-apply" /> Aplicar fusión askbox</label>
+          <label class="check"><input type="checkbox" name="flag" value="--force" id="flag-force" /> Forzar con backup (<code>--force</code>)</label>
+          <p id="flags-hint" class="hint">Por defecto no pisa archivos que ya existan y difieran.</p>
+        </fieldset>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="install-btn">Instalar</button>
+          <span class="form-status" id="install-status" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+      <div class="install-log-wrap hidden" id="install-log-wrap">
+        <h3 class="log-title">Salida del instalador</h3>
+        <pre class="install-log" id="install-log"></pre>
       </div>
       <p class="conflict-note">
         Solo copia piezas del orquestador (<code>auto-orchestrator</code>, <code>multitask-ownership</code>,
         skills <code>plan-implement-verify</code>, <code>askbox-first</code>, <code>git-autopilot</code>).
         No borra tus <code>*-conventions.mdc</code>, hooks ni otros skills.
       </p>
-      <ul class="conflict-list">
-        <li>Sin flags: si un archivo ya existe y <strong>difiere</strong> → se <strong>salta</strong> y se avisa.</li>
-        <li><code>--merge</code>: askbox fusiona (capa A) → <code>*.merge-proposal</code> + informe de directivas.</li>
-        <li><code>--merge-apply</code>: aplica fusión askbox con backup (sin capa A: side-by-side + Cursor).</li>
-        <li><code>--dry-run</code>: simula sin escribir.</li>
-        <li><code>--no-template</code>: sin plantilla de convenciones (solo orquestación).</li>
-        <li><code>--force</code>: backup <code>.bak-…</code> y sobrescribe (sin fusión).</li>
-      </ul>
     </section>
 
     <section class="card card--a" aria-labelledby="layer-a">
       <span class="badge">Capa A</span>
       <h2 id="layer-a">Askbox LLM (askbox-first)</h2>
-      <p>Opcional pero recomendado: el agente usa el gateway askbox para UI/copy antes de gastar subagentes Cursor.</p>
-      <ul>
-        <li><code>ASKBOX_API_URL</code> — base de la API, p. ej. <code>http://127.0.0.1:8066</code></li>
-        <li><code>ASKBOX_ACCESS_TOKEN</code> — token de proyecto <code>ab_live_…</code> (scope <code>ask:read</code>)</li>
-      </ul>
-      <p>Crear el token en la UI de askbox: <strong>/projects</strong> → tokens. No commitear ni pegar en git.</p>
-      <div class="cmd" data-copy="# En ~/.bashrc, profile de Cursor, o env del agente:&#10;export ASKBOX_API_URL=&quot;http://127.0.0.1:8066&quot;&#10;export ASKBOX_ACCESS_TOKEN=&quot;ab_live_…&quot;">
-        <pre><code># En ~/.bashrc, profile de Cursor, o env del agente:
-export ASKBOX_API_URL="http://127.0.0.1:8066"
-export ASKBOX_ACCESS_TOKEN="ab_live_…"</code></pre>
-        <button type="button" class="copy">Copiar plantilla</button>
-      </div>
+      <p>Opcional pero recomendado: el agente usa el gateway askbox para UI/copy antes de gastar subagentes Cursor.
+        Cada cliente puede tener su propia instancia (dominio o IP distinta).</p>
+      <form id="askbox-env-form" class="install-form askbox-form" novalidate>
+        <label class="field" for="askbox-api-url">
+          <span class="field-label">URL / IP de askbox (<code>ASKBOX_API_URL</code>)</span>
+          <input
+            id="askbox-api-url"
+            name="askbox_api_url"
+            type="url"
+            inputmode="url"
+            autocomplete="off"
+            spellcheck="false"
+            value=""
+            placeholder="https://askbox.cliente.com/api o http://192.168.x.x:8066"
+          />
+        </label>
+        <label class="field" for="askbox-access-token">
+          <span class="field-label">Token de proyecto (<code>ASKBOX_ACCESS_TOKEN</code>)</span>
+          <input
+            id="askbox-access-token"
+            name="askbox_access_token"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            value=""
+            placeholder="ab_live_… (scope ask:read)"
+          />
+        </label>
+        <p class="hint">Crear el token en la UI de tu instancia: <strong>/projects</strong> → tokens. No commitear ni pegar en git.</p>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" id="askbox-copy-env">Copiar exports</button>
+          <span class="form-status" id="askbox-env-status" role="status" aria-live="polite"></span>
+        </div>
+        <pre class="env-preview" id="askbox-env-preview" aria-label="Vista previa de variables de entorno"></pre>
+      </form>
       <p class="hint">Skill: <code>.cursor/skills/askbox-first/SKILL.md</code></p>
     </section>
 
-    <section class="card card--b" aria-labelledby="layer-b">
+    <section class="card card--b" aria-labelledby="layer-b-git">
       <span class="badge">Capa B</span>
-      <h2 id="layer-b">Proyecto destino y git de la app</h2>
-      <p>Tras <code>./install.sh</code> (válido en repos nuevos o con <code>.cursor/</code> ya poblado).
+      <h2 id="layer-b-git">Git de la aplicación</h2>
+      <p>Tras instalar, abre el proyecto destino en Cursor (modo Auto).
         Commits autopilot van al remoto del repo <strong>abierto en Cursor</strong>, no al del kit.</p>
       <ol>
-        <li>Tras <code>./install.sh …</code>, abre el proyecto destino en Cursor (modo Auto).</li>
         <li>Opcional: <code>cp .askbox/git-settings.json.example .askbox/git-settings.json</code> en ese proyecto.</li>
         <li><code>gh auth login</code> y <code>git remote add origin …</code> (o <code>gh repo create</code>) en el <em>proyecto</em>.</li>
       </ol>
@@ -100,7 +138,7 @@ git push origin master</code></pre>
       <ul>
         <li>Rellena <code>.cursor/rules/&lt;proyecto&gt;-conventions.mdc</code> en tu app.</li>
         <li>Lee <code>docs/getting-started-after-clone.md</code> y <code>docs/git-and-askbox.md</code>.</li>
-        <li>Vuelve a ejecutar <code>./configure</code> cuando quieras repasar las tres capas.</li>
+        <li>Vuelve a ejecutar <code>./install.sh</code> cuando quieras repasar las tres capas.</li>
       </ul>
     </section>
   </main>

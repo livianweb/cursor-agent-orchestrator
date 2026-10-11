@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# configure — asistente post-clone del kit (capas A/B/C).
+# configure — alias del wizard (install.sh sin ruta) + utilidades legacy.
 #
 # Uso:
-#   ./configure              sirve setup/ en HTTP (LAN por defecto) y abre 127.0.0.1 en el navegador
-#   ./configure --open-file  abre setup/index.html sin servidor (xdg-open / sensible-browser)
-#   ./configure --print      solo imprime la URL file:// y los pasos
+#   ./configure              igual que ./install.sh (wizard HTTP en :8765)
+#   ./configure --open-file  abre setup/index.html sin servidor
+#   ./configure --print      imprime URLs y pasos
 #   ./configure --kit-git    inicializa .askbox/git-settings.json del kit (capa C)
 #
-#   CONFIGURE_HOST (default 0.0.0.0) — interfaz del http.server; 127.0.0.1 solo localhost
+#   CONFIGURE_HOST (default 0.0.0.0) — interfaz del servidor
 #   CONFIGURE_PORT (default 8765)
+#   CONFIGURE_TOKEN — opcional; exige cabecera en POST /api/install
 #
 set -euo pipefail
 
@@ -19,6 +20,7 @@ HOST="${CONFIGURE_HOST:-0.0.0.0}"
 PORT="${CONFIGURE_PORT:-8765}"
 PRINT_ONLY=0
 OPEN_FILE=0
+INIT_KIT_GIT=0
 
 configure_lan_ip() {
   local ip=""
@@ -38,10 +40,9 @@ print_serve_urls() {
   if [ -n "$lan" ] && [ "$HOST" != "127.0.0.1" ]; then
     echo "  Red:    http://${lan}:$PORT/  (otros equipos en la LAN)"
   elif [ "$HOST" = "127.0.0.1" ]; then
-    echo "  (solo localhost; para LAN: CONFIGURE_HOST=0.0.0.0 ./configure)"
+    echo "  (solo localhost; para LAN: CONFIGURE_HOST=0.0.0.0 ./install.sh)"
   fi
 }
-INIT_KIT_GIT=0
 
 open_setup_file() {
   if command -v xdg-open >/dev/null 2>&1; then
@@ -56,7 +57,7 @@ open_setup_file() {
     open "$INDEX"
     return 0
   fi
-  echo "No hay xdg-open/sensible-browser. Abre: $FILE_URL" >&2
+  echo "No hay xdg-open/sensible-browser. Abre: file://$INDEX" >&2
   return 1
 }
 
@@ -66,7 +67,7 @@ for arg in "$@"; do
     --open-file) OPEN_FILE=1 ;;
     --kit-git) INIT_KIT_GIT=1 ;;
     -h|--help)
-      sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
   esac
@@ -82,17 +83,6 @@ if [ "$INIT_KIT_GIT" = "1" ]; then
   fi
 fi
 
-echo "cursor-agent-orchestrator — configuración post-clone"
-echo "  Repo:    $ROOT"
-echo "  Guía UI: $INDEX"
-echo "  Docs:    $ROOT/docs/getting-started-after-clone.md"
-echo
-echo "Pasos rápidos:"
-echo "  1) Capa A — export ASKBOX_API_URL y ASKBOX_ACCESS_TOKEN (entorno Cursor/host)"
-echo "  2) Capa B — ./install.sh /ruta/a/tu-proyecto  (+ git/gh en ese proyecto)"
-echo "  3) Capa C — gh auth + remoto de ESTE repo (kit); opcional: ./configure --kit-git"
-echo
-
 if [ ! -f "$INDEX" ]; then
   echo "ERROR: no se encuentra $INDEX" >&2
   exit 1
@@ -101,32 +91,29 @@ fi
 FILE_URL="file://$INDEX"
 
 if [ "$PRINT_ONLY" = "1" ]; then
-  echo "Abre en el navegador: $FILE_URL"
-  echo "Sin servidor:  ./configure --open-file"
-  echo "O sirve la carpeta setup (bind $HOST):"
+  echo "cursor-agent-orchestrator — configuración post-clone"
+  echo "  Repo:    $ROOT"
+  echo "  Abre en el navegador (con ./install.sh en marcha):"
   print_serve_urls
-  echo "  Comando:  cd setup && python3 -m http.server $PORT --bind $HOST"
+  echo "  Sin servidor:  ./configure --open-file"
+  echo "  API install:   POST http://127.0.0.1:$PORT/api/install"
   exit 0
 fi
 
 if [ "$OPEN_FILE" = "1" ]; then
   echo "Abriendo guía sin servidor HTTP: $INDEX"
+  echo "Nota: Instalar desde la UI requiere ./install.sh (servidor con API)."
   open_setup_file
   exit 0
 fi
 
-if command -v python3 >/dev/null 2>&1; then
-  echo "Sirviendo setup en $HOST:$PORT (Ctrl+C para parar)"
-  print_serve_urls
-  if command -v xdg-open >/dev/null 2>&1; then
-    (sleep 0.4 && xdg-open "http://127.0.0.1:$PORT/" ) >/dev/null 2>&1 &
-  elif command -v open >/dev/null 2>&1; then
-    (sleep 0.4 && open "http://127.0.0.1:$PORT/" ) >/dev/null 2>&1 &
-  fi
-  cd "$SETUP_DIR"
-  exec python3 -m http.server "$PORT" --bind "$HOST"
+if [ $# -gt 0 ] && [ "$INIT_KIT_GIT" != "1" ]; then
+  echo "Opción no reconocida. Usa ./configure --help" >&2
+  exit 1
 fi
 
-echo "Python3 no encontrado. Prueba: ./configure --open-file"
-echo "O abre: $FILE_URL"
-exit 0
+if [ "$INIT_KIT_GIT" = "1" ] && [ $# -eq 1 ]; then
+  exit 0
+fi
+
+exec "$ROOT/install.sh" --wizard

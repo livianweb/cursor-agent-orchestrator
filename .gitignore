@@ -2,6 +2,7 @@
 *.bak-*
 
 # Archivos locales comunes
+__pycache__/
 .DS_Store
 *.swp
 

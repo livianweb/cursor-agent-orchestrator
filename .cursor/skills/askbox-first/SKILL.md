@@ -48,7 +48,7 @@ El agente **no** guarda tokens en skills ni en git. Configuración solo por **va
 
 | Variable | Uso |
 |----------|-----|
-| `ASKBOX_API_URL` | Base de la API, sin barra final. Ejemplos: `http://127.0.0.1:8066`, `https://askbox.softportweb.com/api` (si el proxy público expone la API bajo `/api`). |
+| `ASKBOX_API_URL` | Base de la API de **tu** instancia askbox, sin barra final. Ejemplos: `https://askbox.cliente.com/api`, `http://192.168.x.x:8066` (LAN). No hay un host único global — configúralo por cliente/entorno. |
 | `ASKBOX_ACCESS_TOKEN` | Bearer de proyecto: prefijo `ab_live_…`, scope `ask:read`. Crear en la UI de askbox (`/projects` → tokens) o vía API; **nunca** commitear ni pegar en el chat. |
 
 Alternativa solo en desarrollo local con sesión de usuario: cookie de login en `curl -b` — preferir token de proyecto para scripts del agente.

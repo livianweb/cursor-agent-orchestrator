@@ -27,9 +27,10 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 | `templates/git-settings-screen.md` | Guía de contrato (endpoints, forma de datos, UI sugerida) para construir la pantalla de configuración Git de **tu** proyecto. |
 | `docs/git-and-askbox.md` | Las tres capas (LLM / git proyecto / git kit) y cómo no mezclarlas. |
 | `.askbox/git-settings.json.example` | Preferencias git no secretas por repo (copiar a `.askbox/git-settings.json` en proyecto o kit). |
-| `configure` | Asistente post-clone: abre la guía de setup (capas A/B/C). |
-| `setup/index.html` | UI estática del kit para configuración (independiente de askbox). |
-| `docs/getting-started-after-clone.md` | Flujo canónico clone → configure → install → git por capa. |
+| `install.sh` (sin args) | Wizard HTTP en `:8765` (`setup/` + `POST /api/install`). |
+| `configure` | Alias de `./install.sh`; utilidades `--kit-git`, `--open-file`, `--print`. |
+| `setup/index.html` | UI del wizard (instalar en ruta destino desde el navegador). |
+| `docs/getting-started-after-clone.md` | Flujo canónico clone → install → UI → git por capa. |
 
 ## Qué queda portable vs. qué añade cada app
 
@@ -55,27 +56,27 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 ```bash
 git clone https://github.com/livianweb/cursor-agent-orchestrator.git
 cd cursor-agent-orchestrator
-./configure          # guía visual: capas A (Askbox LLM), B (git proyecto), C (git kit)
-./install.sh /ruta/a/tu-proyecto
+./install.sh           # wizard en http://127.0.0.1:8765/ (capas A/B/C + botón Instalar)
+# En la UI: ruta absoluta del proyecto → Instalar (o CLI: ./install.sh /ruta/a/tu-proyecto)
 ```
 
 Pasos detallados: [`docs/getting-started-after-clone.md`](docs/getting-started-after-clone.md).
-La guía UI vive en `setup/` y `./configure`.
 
 | Comando | Qué hace |
 |---------|----------|
-| `./configure` | HTTP en `0.0.0.0:8765` (LAN) + `setup/index.html`; `CONFIGURE_HOST` / `CONFIGURE_PORT` |
-| `./configure --open-file` | Abre `setup/index.html` en el navegador **sin** servidor (si la LAN falla) |
+| `./install.sh` o `./install.sh --wizard` | HTTP en `0.0.0.0:8765` (LAN) + API `POST /api/install`; `CONFIGURE_HOST` / `CONFIGURE_PORT` / `CONFIGURE_TOKEN` |
+| `./configure` | Igual que `./install.sh` (wizard) |
+| `./configure --open-file` | Abre `setup/index.html` **sin** servidor (sin botón Instalar) |
 | `./configure --kit-git` | Crea `.askbox/git-settings.json` en el kit (capa C) |
-| `./install.sh DESTINO` | Copia rules/skills al **proyecto destino** (capa B) |
+| `./install.sh DESTINO` | Copia rules/skills al **proyecto destino** (capa B), sin levantar el wizard |
 
 ### Opción A — clonar e instalar en un proyecto existente
 
 ```bash
 git clone https://github.com/livianweb/cursor-agent-orchestrator.git
 cd cursor-agent-orchestrator
-./configure
-./install.sh /ruta/a/tu-proyecto
+./install.sh
+# UI → Instalar en /ruta/a/tu-proyecto
 ```
 
 Sin argumento, instala sobre el directorio actual:
@@ -139,11 +140,11 @@ personalizados y distintos quedan intactos hasta `--merge`, `--merge-apply` o `-
 ```bash
 git clone https://github.com/livianweb/cursor-agent-orchestrator.git
 cd cursor-agent-orchestrator
-./configure   # repasa capas A/B/C en el navegador
+./install.sh   # wizard: capas A/B/C + Instalar en la UI
 
 # Capa A (opcional): export ASKBOX_API_URL y ASKBOX_ACCESS_TOKEN en el entorno Cursor
 
-# Capa B: instala en tu app
+# Capa B: ruta en la UI o CLI
 ./install.sh /ruta/a/tu-proyecto-nuevo
 cd /ruta/a/tu-proyecto-nuevo
 mv .cursor/rules/project-conventions.mdc.template .cursor/rules/mi-proyecto-conventions.mdc
