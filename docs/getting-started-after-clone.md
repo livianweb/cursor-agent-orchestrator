@@ -15,11 +15,17 @@ por separado; la configuración tiene **tres capas** (ver también [`git-and-ask
 `./configure` sirve `setup/index.html` en todas las interfaces (`CONFIGURE_HOST`, por defecto
 `0.0.0.0`) en el puerto `CONFIGURE_PORT` (por defecto `8765`). En la consola verás
 `http://127.0.0.1:8765/` y, si hay IP LAN, `http://<ip-lan>:8765/` para abrir desde otro PC.
-Solo localhost: `CONFIGURE_HOST=127.0.0.1 ./configure`. Sin Python: `./configure --print`.
+
+- **Misma máquina:** navegador en `http://127.0.0.1:8765/` (deja `./configure` en marcha).
+- **Otro PC en la red (p. ej. ASUS):** usa la URL **Red** que imprime el script (`http://<ip-del-host>:8765/`).
+  Comprueba con `ss -tlnp | grep 8765` que escucha `0.0.0.0:8765`, no solo `127.0.0.1` (clone antiguo o proceso viejo).
+- **Sin red / firewall:** `./configure --open-file` o `xdg-open setup/index.html`.
+- Solo localhost en HTTP: `CONFIGURE_HOST=127.0.0.1 ./configure`. Sin Python: `./configure --print`.
 
 Opciones útiles:
 
 ```bash
+./configure --open-file  # guía en el navegador sin servidor HTTP
 ./configure --kit-git    # copia .askbox/git-settings.json.example → .askbox/git-settings.json (capa C)
 ./install.sh --help
 ```

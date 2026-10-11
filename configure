@@ -2,7 +2,8 @@
 # configure — asistente post-clone del kit (capas A/B/C). No usa askbox /settings/git.
 #
 # Uso:
-#   ./configure              abre la guía en el navegador (servidor local efímero)
+#   ./configure              sirve setup/ en HTTP (LAN por defecto) y abre 127.0.0.1 en el navegador
+#   ./configure --open-file  abre setup/index.html sin servidor (xdg-open / sensible-browser)
 #   ./configure --print      solo imprime la URL file:// y los pasos
 #   ./configure --kit-git    inicializa .askbox/git-settings.json del kit (capa C)
 #
@@ -17,6 +18,7 @@ INDEX="$SETUP_DIR/index.html"
 HOST="${CONFIGURE_HOST:-0.0.0.0}"
 PORT="${CONFIGURE_PORT:-8765}"
 PRINT_ONLY=0
+OPEN_FILE=0
 
 configure_lan_ip() {
   local ip=""
@@ -41,12 +43,30 @@ print_serve_urls() {
 }
 INIT_KIT_GIT=0
 
+open_setup_file() {
+  if command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$INDEX"
+    return 0
+  fi
+  if command -v sensible-browser >/dev/null 2>&1; then
+    sensible-browser "$INDEX"
+    return 0
+  fi
+  if command -v open >/dev/null 2>&1; then
+    open "$INDEX"
+    return 0
+  fi
+  echo "No hay xdg-open/sensible-browser. Abre: $FILE_URL" >&2
+  return 1
+}
+
 for arg in "$@"; do
   case "$arg" in
     --print) PRINT_ONLY=1 ;;
+    --open-file) OPEN_FILE=1 ;;
     --kit-git) INIT_KIT_GIT=1 ;;
     -h|--help)
-      sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
   esac
@@ -82,9 +102,16 @@ FILE_URL="file://$INDEX"
 
 if [ "$PRINT_ONLY" = "1" ]; then
   echo "Abre en el navegador: $FILE_URL"
+  echo "Sin servidor:  ./configure --open-file"
   echo "O sirve la carpeta setup (bind $HOST):"
   print_serve_urls
   echo "  Comando:  cd setup && python3 -m http.server $PORT --bind $HOST"
+  exit 0
+fi
+
+if [ "$OPEN_FILE" = "1" ]; then
+  echo "Abriendo guía sin servidor HTTP: $INDEX"
+  open_setup_file
   exit 0
 fi
 
@@ -100,5 +127,6 @@ if command -v python3 >/dev/null 2>&1; then
   exec python3 -m http.server "$PORT" --bind "$HOST"
 fi
 
-echo "Python3 no encontrado. Abre: $FILE_URL"
+echo "Python3 no encontrado. Prueba: ./configure --open-file"
+echo "O abre: $FILE_URL"
 exit 0

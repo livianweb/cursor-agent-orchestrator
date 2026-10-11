@@ -65,6 +65,7 @@ La guía UI vive en `setup/` (no es la pantalla `/settings/git` de askbox).
 | Comando | Qué hace |
 |---------|----------|
 | `./configure` | HTTP en `0.0.0.0:8765` (LAN) + `setup/index.html`; `CONFIGURE_HOST` / `CONFIGURE_PORT` |
+| `./configure --open-file` | Abre `setup/index.html` en el navegador **sin** servidor (si la LAN falla) |
 | `./configure --kit-git` | Crea `.askbox/git-settings.json` en el kit (capa C) |
 | `./install.sh DESTINO` | Copia rules/skills al **proyecto destino** (capa B) |
 
