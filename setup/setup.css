@@ -257,6 +257,14 @@ code {
   margin: 0;
 }
 
+.foot-link {
+  color: var(--accent-b);
+}
+
+.foot-link:hover {
+  text-decoration: underline;
+}
+
 .card--install {
   border-left-width: 4px;
 }

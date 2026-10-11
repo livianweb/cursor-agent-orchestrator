@@ -125,19 +125,6 @@
       </form>
     </section>
 
-    <details class="card card--more" id="more-section">
-      <summary>Más</summary>
-      <div class="more-inner">
-        <p class="hint">Vuelve a ejecutar <code>./install.sh</code> en cualquier momento para reabrir este panel.</p>
-        <h3 class="more-title">Git de este kit</h3>
-        <div class="cmd" data-copy="./configure --kit-git&#10;gh auth login&#10;git push origin master">
-          <pre><code>./configure --kit-git
-gh auth login
-git push origin master</code></pre>
-          <button type="button" class="copy">Copiar</button>
-        </div>
-      </div>
-    </details>
   </main>
 
   <div class="modal hidden" id="sync-modal" role="dialog" aria-modal="true" aria-labelledby="sync-title">
@@ -213,7 +200,10 @@ git push origin master</code></pre>
 
   <footer class="foot">
     <div class="wrap">
-      <p>cursor-agent-orchestrator · MIT</p>
+      <p>
+        cursor-agent-orchestrator · MIT ·
+        <a class="foot-link" href="https://github.com/livianweb/cursor-agent-orchestrator/blob/master/docs/getting-started-after-clone.md" rel="noopener">Guía del kit</a>
+      </p>
     </div>
   </footer>
   <script src="setup.js"></script>
