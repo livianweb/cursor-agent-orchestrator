@@ -96,6 +96,7 @@ copy_file "$SCRIPT_DIR/.cursor/rules/multitask-ownership.mdc" "$TARGET_DIR/.curs
 echo
 echo "## Skills portables"
 copy_file "$SCRIPT_DIR/.cursor/skills/plan-implement-verify/SKILL.md" "$TARGET_DIR/.cursor/skills/plan-implement-verify/SKILL.md"
+copy_file "$SCRIPT_DIR/.cursor/skills/askbox-first/SKILL.md" "$TARGET_DIR/.cursor/skills/askbox-first/SKILL.md"
 copy_file "$SCRIPT_DIR/.cursor/skills/git-autopilot/SKILL.md" "$TARGET_DIR/.cursor/skills/git-autopilot/SKILL.md"
 
 if [ "$COPY_TEMPLATE" = "1" ]; then

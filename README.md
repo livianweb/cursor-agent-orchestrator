@@ -22,6 +22,7 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 | `.cursor/rules/auto-orchestrator.mdc` | Heurística **plan vs. directo**, niveles de capacidad (`fast`/`balanced`/`strong`/`strong-thinking`), resolución dinámica a slug (sin tablas fijas) con **preferencia Composer** para ahorro de coste; escalar a otros modelos solo en `strong*`. |
 | `.cursor/rules/multitask-ownership.mdc` | Evita que Tasks en paralelo se pisen: allowlist/denylist por Task, qué va en serie, qué archivos son "calientes" (ownership único). |
 | `.cursor/skills/plan-implement-verify/SKILL.md` | El flujo paso a paso: Decidir → Plan (si aplica) → Directo (si aplica) → Implement → Verify → Git autopilot, con niveles por tipo de subagente. |
+| `.cursor/skills/askbox-first/SKILL.md` | Para UI/visual y copy/docs: usar primero el gateway [askbox](https://github.com) (`POST /v1/ask`); fallback a subagentes Cursor si falla, no aprueba o no hay token/URL en el entorno. |
 | `.cursor/skills/git-autopilot/SKILL.md` | Política de auto-commit + auto-push (anula el "solo commit si el usuario lo pide" por defecto de Cursor) y contrato de la pantalla de configuración Git por proyecto. |
 | `templates/git-settings-screen.md` | Guía de contrato (endpoints, forma de datos, UI sugerida) para construir la pantalla de configuración Git de **tu** proyecto. |
 
@@ -100,14 +101,14 @@ $EDITOR .cursor/rules/mi-proyecto-conventions.mdc   # puertos, stack, dominio, s
 
 A partir de ahí, cualquier instrucción al padre en modo Auto sigue el flujo:
 **decide plan o directo → (plan si aplica) → implementa → verifica → informa**, anunciando
-siempre la decisión tomada, el nivel de capacidad y el slug de modelo resuelto en esa sesión.
+siempre la decisión tomada, si la vía fue askbox o Cursor, el nivel de capacidad y el slug resuelto en esa sesión (UI/copy: askbox-first cuando la skill está instalada).
 
 ## Sincronización con askbox
 
 Este kit nació extrayendo el contenido portable de
 [askbox](https://github.com) (`/srv/softportweb/askbox/.cursor/`). Las reglas
-`auto-orchestrator.mdc`, `multitask-ownership.mdc` y el skill `plan-implement-verify` deben
-mantenerse **con el mismo texto de orquestación** en ambos sitios; lo que diverge entre askbox
+`auto-orchestrator.mdc`, `multitask-ownership.mdc` y los skills `plan-implement-verify` y
+`askbox-first` deben mantenerse **con el mismo texto de orquestación** en ambos sitios; lo que diverge entre askbox
 y cualquier otro proyecto es su rule de convenciones propia (`askbox-conventions.mdc` en ese
 caso) y sus reglas específicas de dominio (p. ej. `llm-routing`, `no-secret-leak`), que **no**
 forman parte de este kit porque son específicas del producto.
