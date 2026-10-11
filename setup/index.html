@@ -78,6 +78,15 @@
             <label class="check"><input type="checkbox" name="flag" value="--merge-apply" id="flag-merge-apply" /> Aplicar fusión (por defecto con askbox completo)</label>
             <label class="check"><input type="checkbox" name="flag" value="--force" id="flag-force" /> Forzar (backup)</label>
           </fieldset>
+          <div class="auto-update-row">
+            <label class="switch" for="auto-update-enabled">
+              <input type="checkbox" id="auto-update-enabled" name="auto_update" checked />
+              <span class="switch-ui" aria-hidden="true"></span>
+              <span class="switch-text">Actualización automática</span>
+            </label>
+            <span class="auto-update-state" id="auto-update-state" role="status" aria-live="polite">Activo</span>
+          </div>
+          <p class="hint auto-update-hint">Mantiene el kit al día en esta máquina (reabre el asistente para cambiar opciones).</p>
         </details>
 
         <button type="submit" class="btn-install" id="install-btn">Instalar</button>
@@ -102,29 +111,6 @@
     <details class="card card--more" id="more-section">
       <summary>Más</summary>
       <div class="more-inner">
-        <h3 class="more-title">Auto-actualización del kit</h3>
-        <form id="auto-update-form" class="stack-form" novalidate>
-          <label class="field" for="auto-update-schedule">
-            <span class="field-label">Horario cron</span>
-            <input
-              id="auto-update-schedule"
-              name="schedule"
-              type="text"
-              autocomplete="off"
-              spellcheck="false"
-              value="0 6 * * *"
-            />
-          </label>
-          <div class="form-actions form-actions--wrap">
-            <button type="button" class="btn-ghost" id="auto-update-enable-btn">Activar</button>
-            <button type="button" class="btn-ghost" id="auto-update-disable-btn">Quitar</button>
-            <button type="button" class="btn-ghost" id="auto-update-run-btn">Ejecutar ahora</button>
-            <span class="form-status" id="auto-update-status" role="status" aria-live="polite"></span>
-          </div>
-          <p class="hint" id="auto-update-meta"></p>
-          <pre class="install-log hidden" id="auto-update-log"></pre>
-        </form>
-
         <h3 class="more-title">Git de este kit</h3>
         <div class="cmd" data-copy="./configure --kit-git&#10;gh auth login&#10;git push origin master">
           <pre><code>./configure --kit-git

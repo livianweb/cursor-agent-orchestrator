@@ -27,9 +27,7 @@ INSTALL_SH = ROOT / "install.sh"
 sys.path.insert(0, str(ROOT / "scripts"))
 from auto_update_api import (  # noqa: E402
     auto_update_status,
-    run_auto_update,
-    run_cron_installer,
-    validate_schedule,
+    set_auto_update_enabled,
 )
 
 ALLOWED_INSTALL_FLAGS = frozenset(
@@ -239,6 +237,12 @@ class SetupHandler(SimpleHTTPRequestHandler):
 
         log = (proc.stdout or "") + (proc.stderr or "")
         ok = proc.returncode == 0
+        if ok:
+            want_auto = data.get("auto_update", True) is not False
+            au = set_auto_update_enabled(ROOT, want_auto)
+            if not au.get("ok"):
+                sys.stderr.write(f"auto-update tras install: {au.get('error', 'fallo')}\n")
+
         self._send_json(
             200 if ok else 500,
             {
@@ -251,29 +255,18 @@ class SetupHandler(SimpleHTTPRequestHandler):
         )
 
     def _handle_auto_update_post(self, data: dict[str, Any]) -> None:
-        action = data.get("action")
-        if not isinstance(action, str) or not action.strip():
-            self._send_json(400, {"ok": False, "error": "action es obligatorio"})
+        if "enabled" not in data:
+            self._send_json(400, {"ok": False, "error": "enabled es obligatorio (true/false)"})
             return
-        action = action.strip()
-        try:
-            schedule = validate_schedule(str(data.get("schedule") or ""))
-        except ValueError as e:
-            self._send_json(400, {"ok": False, "error": str(e)})
+        enabled = data.get("enabled")
+        if not isinstance(enabled, bool):
+            self._send_json(400, {"ok": False, "error": "enabled debe ser booleano"})
             return
-
-        if action == "install_cron":
-            result = run_cron_installer(ROOT, remove=False, schedule=schedule)
-        elif action == "remove_cron":
-            result = run_cron_installer(ROOT, remove=True, schedule=schedule)
-        elif action == "run_now":
-            result = run_auto_update(ROOT)
-        else:
-            self._send_json(400, {"ok": False, "error": f"action desconocida: {action}"})
-            return
-
+        result = set_auto_update_enabled(ROOT, enabled)
         status = 200 if result.get("ok") else 500
-        self._send_json(status, result)
+        self._send_json(status, {"ok": result.get("ok"), "enabled": result.get("enabled", False), **(
+            {"error": result["error"]} if result.get("error") else {}
+        )})
 
 
 def main() -> None:
@@ -300,7 +293,7 @@ def main() -> None:
     print("  API:    GET  /api/setup-config  (askbox en env del servidor, sin token)")
     print("          POST /api/install  {\"path\": \"/ruta/absoluta\", \"flags\": [...]}")
     print("          (si omites flags y ASKBOX_* está completo en env → --merge-apply por defecto)")
-    print("          GET/POST /api/auto-update  (cron diario del kit)")
+    print("          GET/POST /api/auto-update  {\"enabled\": true|false}")
 
     try:
         httpd.serve_forever()

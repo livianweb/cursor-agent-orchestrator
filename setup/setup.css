@@ -323,6 +323,86 @@ code {
   margin-right: 0.45rem;
 }
 
+.auto-update-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-top: 0.85rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border);
+}
+
+.auto-update-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+}
+
+.auto-update-state {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.auto-update-state[data-kind="ok"] {
+  color: var(--accent-b);
+}
+
+.auto-update-state[data-kind="error"] {
+  color: var(--danger, #e55);
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text);
+  user-select: none;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-ui {
+  position: relative;
+  width: 2.5rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.switch-ui::after {
+  content: "";
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  background: var(--bg);
+  transition: transform 0.15s ease;
+}
+
+.switch input:checked + .switch-ui {
+  background: var(--accent-b);
+}
+
+.switch input:checked + .switch-ui::after {
+  transform: translateX(1.15rem);
+}
+
+.switch input:focus-visible + .switch-ui {
+  outline: 2px solid var(--accent-b);
+  outline-offset: 2px;
+}
+
 .form-actions {
   display: flex;
   flex-wrap: wrap;

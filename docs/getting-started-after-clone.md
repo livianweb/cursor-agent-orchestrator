@@ -31,9 +31,9 @@ verás `http://127.0.0.1:8765/` y, si hay IP LAN, `http://<ip-lan>:8765/` para a
 | Método | Ruta | Cuerpo |
 |--------|------|--------|
 | `GET` | `/api/health` | — |
-| `GET` | `/api/auto-update` | Estado cron, `schedule`, `targets`, línea cron sugerida |
-| `POST` | `/api/install` | `{ "path": "/ruta/absoluta", "flags": ["--dry-run"] }` → JSON con `ok`, `log`, `exit_code` |
-| `POST` | `/api/auto-update` | `{ "action": "install_cron" \| "remove_cron" \| "run_now", "schedule": "0 6 * * *" }` |
+| `GET` | `/api/auto-update` | `{ "enabled": true \| false }` |
+| `POST` | `/api/install` | `{ "path": "/ruta/absoluta", "flags": ["--dry-run"], "auto_update": true }` → JSON con `ok`, `log`, `exit_code` (`auto_update` por defecto `true`) |
+| `POST` | `/api/auto-update` | `{ "enabled": true \| false }` |
 
 **Seguridad en LAN:** cualquier equipo en la red local puede llamar a `POST /api/install` y
 escribir en rutas del host. Mitigación opcional: `export CONFIGURE_TOKEN=…` y cabecera
@@ -44,11 +44,10 @@ Opciones útiles:
 ```bash
 ./configure --open-file  # guía en el navegador sin servidor HTTP
 ./configure --kit-git    # copia .askbox/git-settings.json.example → .askbox/git-settings.json (capa C)
-./scripts/install-auto-update-cron.sh   # cron diario 06:00 (cada clone / cada máquina)
 ./install.sh --help
 ```
 
-Auto-update del kit: [`auto-update.md`](auto-update.md).
+Reabre `./install.sh` para cambiar askbox, ruta del proyecto o **Actualización automática** (Avanzado; activa por defecto). Detalle técnico: [`auto-update.md`](auto-update.md).
 
 ## Paso a paso (≈5 minutos)
 
@@ -60,8 +59,7 @@ cd cursor-agent-orchestrator
 ./install.sh
 ```
 
-En la UI, de arriba a abajo: **Paso 1 · Askbox** (capa A, opcional) → **Paso 2 · Proyecto**
-(ruta absoluta + **Instalar**, capa B) → **Paso 3** git/auto-update del kit (capa C).
+En la UI: **Askbox** (opcional) → **Instalar** en tu proyecto (capa B). En **Avanzado**, **Actualización automática** queda activa por defecto. Git del kit (capa C): sección **Más** o `./configure --kit-git`.
 
 ### 2. Capa A — Askbox LLM (entorno del agente Cursor)
 

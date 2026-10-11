@@ -69,23 +69,31 @@ def read_state(path: Path) -> dict[str, Any]:
         return {}
 
 
+def auto_update_enabled(root: Path) -> bool:
+    """True si la actualización automática está programada en esta máquina."""
+    if not cron_installed():
+        return False
+    state = read_state(kit_paths(root)["state"])
+    return bool(state.get("enabled", True))
+
+
 def auto_update_status(root: Path) -> dict[str, Any]:
-    paths = kit_paths(root)
-    state = read_state(paths["state"])
-    schedule = str(state.get("schedule") or DEFAULT_SCHEDULE)
-    targets = read_targets(paths["targets"])
-    installed = cron_installed()
     return {
         "ok": True,
-        "cron_installed": installed,
-        "enabled": installed and bool(state.get("enabled", True)),
-        "schedule": schedule,
-        "cron_line": cron_line_for(root, schedule),
-        "log_file": str(paths["log"]),
-        "targets_file": str(paths["targets"]),
-        "targets": targets,
-        "crontab_available": _has_crontab(),
+        "enabled": auto_update_enabled(root),
     }
+
+
+def set_auto_update_enabled(root: Path, enabled: bool, *, schedule: str = DEFAULT_SCHEDULE) -> dict[str, Any]:
+    """Activa o desactiva la actualización automática (cron interno, sin volcar salida al cliente)."""
+    if not _has_crontab() and enabled:
+        return {"ok": False, "error": "actualización automática no disponible en este equipo"}
+    result = run_cron_installer(root, remove=not enabled, schedule=schedule)
+    ok = bool(result.get("ok"))
+    payload: dict[str, Any] = {"ok": ok, "enabled": auto_update_enabled(root)}
+    if not ok:
+        payload["error"] = result.get("error") or "no se pudo cambiar la actualización automática"
+    return payload
 
 
 def _has_crontab() -> bool:
@@ -125,11 +133,14 @@ def run_cron_installer(root: Path, *, remove: bool = False, schedule: str) -> di
     except subprocess.TimeoutExpired:
         return {"ok": False, "error": "timeout instalando cron"}
     log = (proc.stdout or "") + (proc.stderr or "")
+    if proc.returncode != 0:
+        import sys
+
+        sys.stderr.write(log)
     return {
         "ok": proc.returncode == 0,
         "exit_code": proc.returncode,
         "log": log,
-        "status": auto_update_status(root),
     }
 
 

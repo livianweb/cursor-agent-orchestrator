@@ -129,7 +129,7 @@ if (installForm) {
 
     const askboxUrl = (askboxUrlInput?.value || "").trim();
     const askboxToken = (askboxTokenInput?.value || "").trim();
-    const payload = { path, flags };
+    const payload = { path, flags, auto_update: autoUpdateEnabled?.checked ?? true };
     if (askboxUrl) payload.askbox_api_url = askboxUrl;
     if (askboxToken) payload.askbox_access_token = askboxToken;
 
@@ -145,6 +145,7 @@ if (installForm) {
       if (data.ok) {
         setInstallUi("ok", "Listo");
         showLog(log, false);
+        await saveAutoUpdatePreference(autoUpdateEnabled?.checked ?? true, { silent: true });
       } else {
         const msg = data.error || `Error (código ${data.exit_code ?? res.status})`;
         setInstallUi("error", msg);
@@ -232,19 +233,9 @@ function setAskboxEnvStatus(text, kind) {
   askboxEnvStatus.dataset.kind = kind || "";
 }
 
-const autoUpdateSchedule = document.getElementById("auto-update-schedule");
-const autoUpdateStatus = document.getElementById("auto-update-status");
-const autoUpdateMeta = document.getElementById("auto-update-meta");
-const autoUpdateLog = document.getElementById("auto-update-log");
-const autoUpdateEnableBtn = document.getElementById("auto-update-enable-btn");
-const autoUpdateDisableBtn = document.getElementById("auto-update-disable-btn");
-const autoUpdateRunBtn = document.getElementById("auto-update-run-btn");
-
-function setAutoUpdateStatus(text, kind) {
-  if (!autoUpdateStatus) return;
-  autoUpdateStatus.textContent = text;
-  autoUpdateStatus.dataset.kind = kind || "";
-}
+const autoUpdateEnabled = document.getElementById("auto-update-enabled");
+const autoUpdateState = document.getElementById("auto-update-state");
+let autoUpdateSaving = false;
 
 function autoUpdateHeaders() {
   const headers = { "Content-Type": "application/json" };
@@ -253,16 +244,11 @@ function autoUpdateHeaders() {
   return headers;
 }
 
-function renderAutoUpdateMeta(data) {
-  if (!autoUpdateMeta || !data) return;
-  const parts = [];
-  parts.push(data.cron_installed ? "Cron activo." : "Cron inactivo.");
-  if (Array.isArray(data.targets) && data.targets.length) {
-    parts.push(`${data.targets.length} proyecto(s) registrados.`);
-  }
-  autoUpdateMeta.textContent = parts.join(" ");
-  if (autoUpdateSchedule && data.schedule) {
-    autoUpdateSchedule.value = data.schedule;
+function renderAutoUpdateSwitch(enabled) {
+  if (autoUpdateEnabled) autoUpdateEnabled.checked = Boolean(enabled);
+  if (autoUpdateState) {
+    autoUpdateState.textContent = enabled ? "Activo" : "Inactivo";
+    autoUpdateState.dataset.kind = enabled ? "ok" : "";
   }
 }
 
@@ -270,47 +256,51 @@ async function fetchAutoUpdateStatus() {
   try {
     const res = await fetch("/api/auto-update");
     const data = await res.json().catch(() => ({}));
-    renderAutoUpdateMeta(data);
+    if (typeof data.enabled === "boolean") {
+      renderAutoUpdateSwitch(data.enabled);
+    }
     return data;
   } catch {
-    if (autoUpdateMeta) autoUpdateMeta.textContent = "";
     return null;
   }
 }
 
-async function postAutoUpdate(action) {
-  const schedule = (autoUpdateSchedule?.value || "0 6 * * *").trim();
-  setAutoUpdateStatus("…", "busy");
-  if (autoUpdateLog) {
-    autoUpdateLog.classList.add("hidden");
-    autoUpdateLog.textContent = "";
+async function saveAutoUpdatePreference(enabled, opts = {}) {
+  const { silent = false } = opts;
+  if (autoUpdateSaving) return;
+  autoUpdateSaving = true;
+  renderAutoUpdateSwitch(enabled);
+  if (!silent && autoUpdateState) {
+    autoUpdateState.textContent = "Guardando…";
+    autoUpdateState.dataset.kind = "busy";
   }
   try {
     const res = await fetch("/api/auto-update", {
       method: "POST",
       headers: autoUpdateHeaders(),
-      body: JSON.stringify({ action, schedule }),
+      body: JSON.stringify({ enabled: Boolean(enabled) }),
     });
     const data = await res.json().catch(() => ({}));
-    if (data.log && autoUpdateLog) {
-      autoUpdateLog.textContent = data.log;
-      autoUpdateLog.classList.remove("hidden");
+    if (data.ok && typeof data.enabled === "boolean") {
+      renderAutoUpdateSwitch(data.enabled);
+    } else if (!silent && autoUpdateState) {
+      autoUpdateState.textContent = data.error || "No se pudo guardar";
+      autoUpdateState.dataset.kind = "error";
     }
-    if (data.status) renderAutoUpdateMeta(data.status);
-    setAutoUpdateStatus(data.ok ? "Hecho." : data.error || "Error.", data.ok ? "ok" : "error");
   } catch {
-    setAutoUpdateStatus("Sin conexión.", "error");
+    if (!silent && autoUpdateState) {
+      autoUpdateState.textContent = "Sin conexión";
+      autoUpdateState.dataset.kind = "error";
+    }
+  } finally {
+    autoUpdateSaving = false;
   }
 }
 
-if (autoUpdateEnableBtn) {
-  autoUpdateEnableBtn.addEventListener("click", () => postAutoUpdate("install_cron"));
-}
-if (autoUpdateDisableBtn) {
-  autoUpdateDisableBtn.addEventListener("click", () => postAutoUpdate("remove_cron"));
-}
-if (autoUpdateRunBtn) {
-  autoUpdateRunBtn.addEventListener("click", () => postAutoUpdate("run_now"));
+if (autoUpdateEnabled) {
+  autoUpdateEnabled.addEventListener("change", () => {
+    saveAutoUpdatePreference(autoUpdateEnabled.checked);
+  });
 }
 
 fetchAutoUpdateStatus();
