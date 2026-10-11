@@ -1,11 +1,18 @@
 # Plantilla: pantalla de configuración Git por proyecto
 
 Guía de contrato (no código atado a un framework) para implementar la pantalla/endpoints que
-pide `.cursor/skills/git-autopilot/SKILL.md`. Adapta rutas y framework a tu stack; esto es la
-forma de los datos y el comportamiento esperado, no una implementación obligatoria.
+pide `.cursor/skills/git-autopilot/SKILL.md` (**capa B** — git del repo de tu producto; el kit
+usa el mismo patrón en **capa C** para su propio repo). Adapta rutas y framework a tu stack.
 
-Hay una implementación de referencia completa (FastAPI + Next.js) en askbox:
-`api/app/gitops.py`, `api/app/routers/git_settings.py`, `web/app/settings/git/page.js`.
+**No confundir con askbox-first (capa A):** `ASKBOX_ACCESS_TOKEN` es solo para `/v1/ask`. Git
+vive en cada repo (`.askbox/git-settings.json` + `gh` o pantalla propia). Ver
+`docs/git-and-askbox.md` en el kit.
+
+**Askbox como referencia opcional:** si despliegas askbox, `/settings/git` gestiona el repo
+montado en `ASKBOX_REPO_PATH` y hermanos en `ASKBOX_EXTRA_REPOS` (p. ej. el kit); eso **no**
+obliga a que todas las apps usen askbox para git. Implementación de referencia:
+`api/app/gitops.py`, `api/app/routers/git_settings.py`, `web/app/settings/git/page.js` (repo
+askbox producto).
 
 ## Principios
 

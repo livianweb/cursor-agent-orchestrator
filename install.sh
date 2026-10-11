@@ -115,6 +115,16 @@ if [ "$N_SKIPPED" -gt 0 ] && [ "$DRY_RUN" != "1" ]; then
   echo "Revísalos manualmente o vuelve a ejecutar con --force para sobrescribir (se hace backup .bak-${STAMP})."
 fi
 
+if [ -f "$SCRIPT_DIR/.askbox/git-settings.json.example" ]; then
+  echo
+  echo "## Preferencias Git (opcional, sin secretos)"
+  copy_file "$SCRIPT_DIR/.askbox/git-settings.json.example" "$TARGET_DIR/.askbox/git-settings.json.example"
+  if [ ! -f "$TARGET_DIR/.askbox/git-settings.json" ]; then
+    echo "  (tip: cp .askbox/git-settings.json.example .askbox/git-settings.json y ajusta preferencias)"
+  fi
+fi
+
 echo
 echo "Siguiente paso: renombra $TARGET_DIR/.cursor/rules/project-conventions.mdc.template"
 echo "a algo como <tu-proyecto>-conventions.mdc y rellena tus convenciones propias."
+echo "Git del proyecto (capa B): ver docs/git-and-askbox.md y .cursor/skills/git-autopilot/SKILL.md"

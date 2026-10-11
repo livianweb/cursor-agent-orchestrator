@@ -25,6 +25,8 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 | `.cursor/skills/askbox-first/SKILL.md` | Para UI/visual y copy/docs: usar primero el gateway [askbox](https://github.com) (`POST /v1/ask`); fallback a subagentes Cursor si falla, no aprueba o no hay token/URL en el entorno. |
 | `.cursor/skills/git-autopilot/SKILL.md` | Política de auto-commit + auto-push (anula el "solo commit si el usuario lo pide" por defecto de Cursor) y contrato de la pantalla de configuración Git por proyecto. |
 | `templates/git-settings-screen.md` | Guía de contrato (endpoints, forma de datos, UI sugerida) para construir la pantalla de configuración Git de **tu** proyecto. |
+| `docs/git-and-askbox.md` | Las tres capas (LLM / git proyecto / git kit) y cómo no mezclarlas. |
+| `.askbox/git-settings.json.example` | Preferencias git no secretas por repo (copiar a `.askbox/git-settings.json` en proyecto o kit). |
 
 ## Qué queda portable vs. qué añade cada app
 
@@ -102,6 +104,26 @@ $EDITOR .cursor/rules/mi-proyecto-conventions.mdc   # puertos, stack, dominio, s
 A partir de ahí, cualquier instrucción al padre en modo Auto sigue el flujo:
 **decide plan o directo → (plan si aplica) → implementa → verifica → informa**, anunciando
 siempre la decisión tomada, si la vía fue askbox o Cursor, el nivel de capacidad y el slug resuelto en esa sesión (UI/copy: askbox-first cuando la skill está instalada).
+
+## Askbox vs orquestador vs git (3 configs)
+
+**Askbox** (producto gateway LLM) y **este kit** (orquestación Cursor) van por separado: remotos
+Git distintos, repos distintos, objetivos distintos. No asumas que «todo se configura en askbox»
+ni que la pantalla `/settings/git` de un despliegue askbox sustituye git en apps arbitrarias.
+
+| Capa | Qué | Dónde se configura |
+|------|-----|-------------------|
+| **A. Askbox LLM** | `ASKBOX_API_URL` + `ASKBOX_ACCESS_TOKEN` para askbox-first | Env del host/agente Cursor; token en askbox `/projects` |
+| **B. Git del proyecto** | Remoto, PAT/`gh`, preferencias autopilot | Repo del **proyecto abierto en Cursor**: `.askbox/git-settings.json` (ver `.askbox/git-settings.json.example`), `gh`/git local; skill `git-autopilot` opera sobre el cwd de ese repo |
+| **C. Git del orquestador** | Remoto del **kit**, push de rules/skills | Repo de este kit (`cursor-agent-orchestrator`): mismo patrón que B, pero commits del kit van al remoto del kit, no al de askbox ni al de tu app |
+
+- **Capa A** → `.cursor/skills/askbox-first/SKILL.md` (solo LLM; no gestiona Git).
+- **Capas B y C** → `.cursor/skills/git-autopilot/SKILL.md` y guía extendida en
+  [`docs/git-and-askbox.md`](docs/git-and-askbox.md).
+
+El producto askbox puede montar repos hermanos (`ASKBOX_EXTRA_REPOS`, p. ej. este kit) y ofrecer
+`/settings/git?repo=…` como **conveniencia opcional** de deploy; el camino canónico del kit sigue
+siendo trabajar en su repo con git-autopilot + `gh` (o su propio `.askbox/git-settings.json`).
 
 ## Sincronización con askbox
 
