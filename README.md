@@ -94,6 +94,19 @@ Si publicaste este kit como repo público en GitHub, márcalo como **Template re
 3. Renombra `.cursor/rules/project-conventions.mdc.template` a `<tu-proyecto>-conventions.mdc`
    y rellena tus convenciones (ver plantilla).
 
+### Proyectos nuevos y existentes (`install.sh`)
+
+Válido para un repo **recién creado** (sin `.cursor/`) o para uno **que ya lleva** rules/skills
+propias. El instalador usa una **lista cerrada** de archivos del orquestador; no elimina ni
+modifica el resto de `.cursor/` (p. ej. `mi-app-conventions.mdc`, hooks, skills ajenos al kit).
+
+| Pieza instalada | Ruta en el proyecto destino |
+|-----------------|----------------------------|
+| Reglas de orquestación | `.cursor/rules/auto-orchestrator.mdc`, `multitask-ownership.mdc` |
+| Skills portables | `.cursor/skills/plan-implement-verify/`, `askbox-first/`, `git-autopilot/` |
+| Plantillas (opcional) | `.cursor/rules/project-conventions.mdc.template`, `.cursor/templates/git-settings-screen.md` |
+| Preferencias git (ejemplo) | `.askbox/git-settings.json.example` |
+
 ### Flags de `install.sh`
 
 ```bash
@@ -105,9 +118,13 @@ Si publicaste este kit como repo público en GitHub, márcalo como **Template re
 - `--force`: si el archivo destino difiere, hace **backup** (`archivo.bak-FECHA-HORA`) y
   sobrescribe con la versión del kit.
 - `--dry-run`: muestra qué haría, sin tocar el disco.
-- `--no-template`: no copia `project-conventions.mdc.template` (por si ya tienes tu propia rule
-  de convenciones y solo quieres las piezas de orquestación).
+- `--no-template`: no copia plantillas (por si ya tienes tu propia rule de convenciones y solo
+  quieres las piezas de orquestación).
 - **Idempotente**: si vuelves a ejecutarlo y nada cambió, no hace nada (ni backups innecesarios).
+
+En un proyecto existente con orquestación ya instalada, vuelve a ejecutar sin flags para
+actualizar solo archivos **nuevos** del kit; los que hayas personalizado y difieran quedan
+intactos hasta que uses `--force` o fusiones a mano.
 
 ## Arrancar un proyecto nuevo con este paradigma en <5 minutos
 

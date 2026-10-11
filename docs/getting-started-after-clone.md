@@ -46,9 +46,18 @@ hace fallback a subagentes Cursor (sigue funcionando el kit).
 
 ### 3. Capa B — Proyecto destino + git de la app
 
+`install.sh` vale para un repo **nuevo** (sin `.cursor/`) o **existente** (con rules/skills/hooks
+propios). Solo instala piezas del orquestador; **no borra** tu `*-conventions.mdc`, hooks ni
+skills ajenos al kit.
+
 ```bash
-./install.sh /ruta/a/mi-app
+./install.sh /ruta/a/mi-app                    # seguro: no pisa archivos que ya difieran
+./install.sh /ruta/a/mi-app --dry-run          # simular
+./install.sh /ruta/a/mi-app --no-template      # sin plantilla de convenciones
+./install.sh /ruta/a/mi-app --force            # backup .bak-* + sobrescribe lo que difiera
+
 cd /ruta/a/mi-app
+# Si es proyecto nuevo y copiaste la plantilla:
 mv .cursor/rules/project-conventions.mdc.template .cursor/rules/mi-app-conventions.mdc
 # Edita convenciones (stack, puertos, verify)
 
@@ -56,6 +65,10 @@ cp .askbox/git-settings.json.example .askbox/git-settings.json   # opcional
 gh auth login
 git remote add origin https://github.com/TU_USUARIO/mi-app.git   # o gh repo create
 ```
+
+**Conflictos en `.cursor/`:** archivo idéntico al kit → sin cambios; distinto → **skip** (salvo
+`--force`, que hace backup y copia). Lista cerrada: `auto-orchestrator.mdc`, `multitask-ownership.mdc`,
+skills `plan-implement-verify`, `askbox-first`, `git-autopilot`. Ver `./install.sh --help`.
 
 Abre **mi-app** en Cursor (Auto + Multitask). Los commits autopilot van al remoto de **mi-app**.
 
