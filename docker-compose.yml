@@ -1,0 +1,42 @@
+# Panel persistente del kit (wizard + API install/browse).
+# Uso: ./install.sh  →  docker compose up -d --build
+#
+# Montajes del host (ajusta en .env o export):
+#   ORCHESTRATOR_KIT_PATH  ruta absoluta del clone del kit (rw: installations.json, .askbox/)
+#   HOST_ROOT              árbol visible para instalar proyectos (p. ej. /srv → /srv)
+#   Para rutas bajo $HOME: añade docker-compose.override.yml (ver compose.override.example.yml).
+#   CONFIGURE_PORT         puerto publicado en el host (default 8765)
+#   CONFIGURE_TOKEN        token opcional para API (no va en la imagen)
+#   ORCHESTRATOR_UID/GID   uid/gid al escribir en bind mounts (default 1000)
+
+services:
+  orchestrator-panel:
+    build: .
+    image: cursor-agent-orchestrator-panel:latest
+    container_name: cursor-orchestrator-panel
+    restart: unless-stopped
+    ports:
+      - "${CONFIGURE_PORT:-8765}:8765"
+    environment:
+      CONFIGURE_HOST: "0.0.0.0"
+      CONFIGURE_PORT: "8765"
+      CONFIGURE_TOKEN: ${CONFIGURE_TOKEN:-}
+      ORCHESTRATOR_IN_DOCKER: "1"
+      GIT_OPTIONAL_LOCKS: "0"
+    user: "${ORCHESTRATOR_UID:-1000}:${ORCHESTRATOR_GID:-1000}"
+    volumes:
+      - ${ORCHESTRATOR_KIT_PATH:-.}:/kit:rw
+      - ${HOST_ROOT:-/srv}:/srv:rw
+    working_dir: /kit
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/health', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

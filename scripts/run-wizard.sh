@@ -23,10 +23,12 @@ echo "  Abre:  http://127.0.0.1:$PORT/"
 echo "  Gestiona instalaciones en el navegador (lista, nueva, desinstalar)."
 echo
 
-if command -v xdg-open >/dev/null 2>&1; then
-  (sleep 0.4 && xdg-open "http://127.0.0.1:$PORT/") >/dev/null 2>&1 &
-elif command -v open >/dev/null 2>&1; then
-  (sleep 0.4 && open "http://127.0.0.1:$PORT/") >/dev/null 2>&1 &
+if [ "${ORCHESTRATOR_IN_DOCKER:-}" != "1" ]; then
+  if command -v xdg-open >/dev/null 2>&1; then
+    (sleep 0.4 && xdg-open "http://127.0.0.1:$PORT/") >/dev/null 2>&1 &
+  elif command -v open >/dev/null 2>&1; then
+    (sleep 0.4 && open "http://127.0.0.1:$PORT/") >/dev/null 2>&1 &
+  fi
 fi
 
 export CONFIGURE_HOST="$HOST"

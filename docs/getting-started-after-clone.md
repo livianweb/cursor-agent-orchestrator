@@ -12,16 +12,18 @@ por separado; la configuración tiene **tres capas** (ver también [`git-and-ask
 | Wizard (guía + instalar en UI) | `./install.sh` o `./configure` |
 | Instalar por CLI | `./install.sh /ruta/a/tu-proyecto` |
 
-**Resumen:** `./install.sh` = asistente en el navegador; `./install.sh /ruta` = instalación por CLI (sin wizard).
+**Resumen:** `./install.sh` = panel Docker persistente en el navegador; `./install.sh /ruta` = instalación por CLI en el host (sin wizard).
 
-`./install.sh` sin argumentos arranca el servidor del wizard (`scripts/setup_server.py`) en
-`CONFIGURE_HOST` (por defecto `0.0.0.0`) y `CONFIGURE_PORT` (por defecto `8765`). En la consola
-verás `http://127.0.0.1:8765/` y, si hay IP LAN, `http://<ip-lan>:8765/` para abrir desde otro PC.
+`./install.sh` sin argumentos ejecuta `docker compose up -d --build` (servicio `orchestrator-panel`,
+`restart: unless-stopped`). El wizard (`scripts/setup_server.py` vía `scripts/run-wizard.sh`) escucha en
+`0.0.0.0:8765` dentro del contenedor. En la consola verás `http://127.0.0.1:8765/` y, si hay IP LAN,
+`http://<ip-lan>:8765/`.
 
-- **Misma máquina:** navegador en `http://127.0.0.1:8765/` (deja `./install.sh` en marcha).
-- **Otro PC en la red:** usa la URL **Red** que imprime el script.
-  Comprueba con `ss -tlnp | grep 8765` que escucha `0.0.0.0:8765`, no solo `127.0.0.1` (proceso
-  antiguo con `python3 -m http.server` sin API — mátalo y vuelve a ejecutar `./install.sh`).
+- **Misma máquina:** `http://127.0.0.1:8765/` (el panel sigue tras cerrar la terminal).
+- **Otro PC en la red:** URL **Red** que imprime `./install.sh`.
+  Comprueba con `docker compose ps` o `ss -tlnp | grep 8765`.
+- **Parar:** `./install.sh --down`.
+- **Sin Docker / depuración:** `ORCHESTRATOR_PANEL_FOREGROUND=1 ./install.sh` (proceso en foreground).
 - **Hard refresh** en el navegador (`Ctrl+Shift+R`) si ves la sección «Clonar e instalar» obsoleta.
 - **Sin red / firewall:** `./configure --open-file` (solo lectura; Instalar requiere el servidor).
 - Solo localhost: `CONFIGURE_HOST=127.0.0.1 ./install.sh`. Sin Python: `./configure --print`.

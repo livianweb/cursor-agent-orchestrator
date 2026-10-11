@@ -27,7 +27,8 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 | `templates/git-settings-screen.md` | Guía de contrato (endpoints, forma de datos, UI sugerida) para construir la pantalla de configuración Git de **tu** proyecto. |
 | `docs/git-and-askbox.md` | Las tres capas (LLM / git proyecto / git kit) y cómo no mezclarlas. |
 | `.askbox/git-settings.json.example` | Preferencias git no secretas por repo (copiar a `.askbox/git-settings.json` en proyecto o kit). |
-| `install.sh` (sin args) | Arranca el panel HTTP en `:8765` (registro, nueva instalación, desinstalar, explorador de carpetas). |
+| `install.sh` (sin args) | **Docker:** `docker compose up -d --build` — panel siempre en `:8765` (`restart: unless-stopped`). |
+| `docker-compose.yml` | Servicio `orchestrator-panel`; monta el kit en `/kit` y `HOST_ROOT` (p. ej. `/srv`) para instalar en el host. |
 | `configure` | Alias de `./install.sh`; utilidades `--kit-git`, `--open-file`, `--print`. |
 | `setup/index.html` | UI del wizard (instalar en ruta destino desde el navegador). |
 | `docs/getting-started-after-clone.md` | Flujo canónico clone → install → UI → git por capa. |
@@ -55,7 +56,8 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 
 ```bash
 cd /srv/softportweb/cursor-agent-orchestrator && git pull && ./install.sh
-# Abre http://127.0.0.1:8765/  (o la URL Red que imprima)
+# Un solo ./install.sh deja el panel siempre disponible (lista localhost + IPs LAN/VPN/ZeroTier)
+# (contenedor en segundo plano; restart: unless-stopped)
 ```
 
 **URL del repositorio:** `https://github.com/livianweb/cursor-agent-orchestrator.git`
@@ -65,15 +67,20 @@ cd /srv/softportweb/cursor-agent-orchestrator && git pull && ./install.sh
 ```bash
 git clone https://github.com/livianweb/cursor-agent-orchestrator.git
 cd cursor-agent-orchestrator
-./install.sh           # asistente UI (http://127.0.0.1:8765/) — no uses sudo
-# ./install.sh /ruta/a/tu-proyecto  → instalación CLI sin wizard
+./install.sh           # panel Docker en http://127.0.0.1:8765/ — no uses sudo
+# ./install.sh --down  → para el panel
+# ./install.sh /ruta/a/tu-proyecto  → instalación CLI en el host (sin levantar Docker)
 ```
+
+Montajes y variables: copia `.env.docker.example` → `.env` (`ORCHESTRATOR_KIT_PATH`, `HOST_ROOT`). Para instalar bajo `$HOME`, `compose.override.example.yml` → `docker-compose.override.yml`.
 
 Pasos detallados: [`docs/getting-started-after-clone.md`](docs/getting-started-after-clone.md).
 
 | Comando | Qué hace |
 |---------|----------|
-| `./install.sh` o `./install.sh --wizard` | HTTP en `0.0.0.0:8765` (LAN) + API `POST /api/install`; `CONFIGURE_HOST` / `CONFIGURE_PORT` / `CONFIGURE_TOKEN` |
+| `./install.sh` o `./install.sh --wizard` | `docker compose up -d --build`; API en `0.0.0.0:8765` (`CONFIGURE_PORT` / `CONFIGURE_TOKEN` en `.env`) |
+| `./install.sh --down` | `docker compose down` |
+| `ORCHESTRATOR_PANEL_FOREGROUND=1 ./install.sh` | Wizard Python en foreground (sin Docker; depuración) |
 | `./configure` | Igual que `./install.sh` (wizard) |
 | `./configure --open-file` | Abre `setup/index.html` **sin** servidor (sin botón Instalar) |
 | `./configure --kit-git` | Crea `.askbox/git-settings.json` en el kit (capa C) |

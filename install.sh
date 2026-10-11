@@ -6,7 +6,8 @@
 # Solo copia piezas del orquestador; no borra ni toca archivos fuera de la lista.
 #
 # Uso principal:
-#   ./install.sh                    panel de control en el navegador (:8765)
+#   ./install.sh                    panel Docker en :8765 (docker compose up -d --build)
+#   ./install.sh --down             para el panel Docker
 #   ./install.sh --wizard           igual que sin argumentos
 #
 # Legacy (CLI, sin UI): ./install.sh [RUTA_PROYECTO_DESTINO] [opciones]
@@ -45,7 +46,7 @@ warn_if_root() {
   fi
 }
 
-run_wizard() {
+run_wizard_foreground() {
   warn_if_root
   if [ ! -x "$WIZARD_HELPER" ]; then
     chmod +x "$WIZARD_HELPER" 2>/dev/null || true
@@ -53,7 +54,79 @@ run_wizard() {
   exec bash "$WIZARD_HELPER"
 }
 
+panel_configure_port() {
+  local port="${CONFIGURE_PORT:-8765}"
+  if [ -f "$KIT_ROOT/.env" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in
+        \#*) continue ;;
+        CONFIGURE_PORT=*) port="${line#CONFIGURE_PORT=}"; port="${port%\"}"; port="${port#\"}" ;;
+      esac
+    done < "$KIT_ROOT/.env"
+  fi
+  printf '%s' "$port"
+}
+
+open_panel_url() {
+  local url="$1"
+  if command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$url" >/dev/null 2>&1 &
+  elif command -v open >/dev/null 2>&1; then
+    open "$url" >/dev/null 2>&1 &
+  fi
+}
+
+run_panel_docker() {
+  warn_if_root
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "ERROR: Docker no está instalado. Instálalo o usa ORCHESTRATOR_PANEL_FOREGROUND=1 ./install.sh" >&2
+    exit 1
+  fi
+  if ! docker compose version >/dev/null 2>&1; then
+    echo "ERROR: docker compose (plugin v2) no disponible." >&2
+    exit 1
+  fi
+
+  export ORCHESTRATOR_KIT_PATH="$(cd "$KIT_ROOT" && pwd)"
+  cd "$KIT_ROOT"
+
+  if [ "${COMPOSE_DOWN:-0}" = "1" ]; then
+    docker compose down
+    echo "Panel Docker detenido."
+    exit 0
+  fi
+
+  if [ ! -f .env ] && [ -f .env.docker.example ]; then
+    echo "Tip: cp .env.docker.example .env para ORCHESTRATOR_KIT_PATH / HOST_ROOT (opcional)."
+  fi
+
+  echo "cursor-agent-orchestrator — panel Docker (restart: unless-stopped)"
+  docker compose up -d --build
+
+  local port
+  port="$(panel_configure_port)"
+  local url_helper="$KIT_ROOT/scripts/panel-print-urls.sh"
+  if [ ! -x "$url_helper" ]; then
+    chmod +x "$url_helper" 2>/dev/null || true
+  fi
+
+  echo
+  if [ -x "$url_helper" ]; then
+    CONFIGURE_PORT="$port" bash "$url_helper" "$port"
+  else
+    echo "http://127.0.0.1:${port}/"
+  fi
+  echo
+  echo "Estado: docker compose ps"
+  echo "Parar:  ./install.sh --down"
+  echo
+
+  open_panel_url "http://127.0.0.1:${port}/"
+  exit 0
+}
+
 WIZARD=0
+COMPOSE_DOWN=0
 TARGET_DIR=""
 FORCE=0
 MERGE=0
@@ -64,6 +137,7 @@ COPY_TEMPLATE=1
 
 for arg in "$@"; do
   case "$arg" in
+    --down) COMPOSE_DOWN=1 ;;
     --wizard) WIZARD=1 ;;
     --force) FORCE=1; MERGE_CONFLICT_EXPLICIT=1 ;;
     --merge) MERGE=1; MERGE_CONFLICT_EXPLICIT=1 ;;
@@ -85,13 +159,25 @@ for arg in "$@"; do
   esac
 done
 
-# Sin ruta: siempre wizard (nunca $PWD ni la raíz del kit).
+# Sin ruta: panel Docker (o wizard en foreground si ORCHESTRATOR_PANEL_FOREGROUND=1).
 if [ $# -eq 0 ]; then
-  run_wizard
+  if [ "${ORCHESTRATOR_PANEL_FOREGROUND:-}" = "1" ]; then
+    run_wizard_foreground
+  else
+    run_panel_docker
+  fi
+fi
+
+if [ "$COMPOSE_DOWN" = "1" ] && [ -z "$TARGET_DIR" ]; then
+  run_panel_docker
 fi
 
 if [ "$WIZARD" = "1" ] && [ -z "$TARGET_DIR" ]; then
-  run_wizard
+  if [ "${ORCHESTRATOR_PANEL_FOREGROUND:-}" = "1" ]; then
+    run_wizard_foreground
+  else
+    run_panel_docker
+  fi
 fi
 
 if [ -z "$TARGET_DIR" ]; then
