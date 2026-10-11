@@ -16,10 +16,22 @@
   </header>
 
   <main id="main" class="wrap">
+    <div class="kit-banner hidden" id="kit-update-banner" role="status" aria-live="polite">
+      <div class="kit-banner-text">
+        <strong>Hay una versión nueva del kit</strong>
+        <span class="kit-banner-detail" id="kit-update-detail"></span>
+      </div>
+      <button type="button" class="btn-secondary" id="btn-kit-update">Actualizar kit</button>
+    </div>
+    <p class="kit-uptodate hidden" id="kit-uptodate" aria-live="polite"></p>
+
     <section class="card card--list" aria-labelledby="registry-heading">
       <div class="section-head">
         <h2 id="registry-heading">Instalaciones</h2>
-        <button type="button" class="btn-secondary" id="btn-new-install">+ Nueva</button>
+        <div class="section-head-actions">
+          <button type="button" class="btn-ghost hidden" id="btn-sync-all">Actualizar todas</button>
+          <button type="button" class="btn-secondary" id="btn-new-install">+ Nueva</button>
+        </div>
       </div>
       <p class="hint kit-meta hidden" id="kit-meta" aria-live="polite"></p>
       <ul class="install-list" id="install-list" aria-live="polite"></ul>
@@ -127,6 +139,57 @@ git push origin master</code></pre>
       </div>
     </details>
   </main>
+
+  <div class="modal hidden" id="sync-modal" role="dialog" aria-modal="true" aria-labelledby="sync-title">
+    <div class="modal-backdrop" id="sync-backdrop"></div>
+    <div class="modal-panel">
+      <header class="modal-header">
+        <h2 id="sync-title">Actualizar instalación</h2>
+        <button type="button" class="btn-ghost modal-close" id="sync-close" aria-label="Cerrar">✕</button>
+      </header>
+      <p class="edit-path" id="sync-path"></p>
+      <p class="hint" id="sync-hint">Vuelve a copiar o fusionar las piezas del orquestador en este proyecto.</p>
+      <label class="field hidden" id="sync-token-field" for="sync-askbox-token">
+        <span class="field-label">Token askbox</span>
+        <input id="sync-askbox-token" type="password" autocomplete="off" spellcheck="false" />
+      </label>
+      <p class="browse-error hidden" id="sync-error" role="alert"></p>
+      <footer class="modal-footer">
+        <button type="button" class="btn-primary" id="sync-run">Actualizar</button>
+        <button type="button" class="btn-ghost" id="sync-cancel">Cancelar</button>
+      </footer>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-title">
+    <div class="modal-backdrop" id="edit-backdrop"></div>
+    <div class="modal-panel">
+      <header class="modal-header">
+        <h2 id="edit-title">Editar instalación</h2>
+        <button type="button" class="btn-ghost modal-close" id="edit-close" aria-label="Cerrar">✕</button>
+      </header>
+      <p class="edit-path" id="edit-path"></p>
+      <form id="edit-form" class="stack-form">
+        <label class="field" for="edit-askbox-url">
+          <span class="field-label">URL askbox</span>
+          <input id="edit-askbox-url" type="url" autocomplete="off" spellcheck="false" placeholder="https://…/api" />
+        </label>
+        <label class="field" for="edit-askbox-token">
+          <span class="field-label">Token (opcional, solo si cambias la clave)</span>
+          <input id="edit-askbox-token" type="password" autocomplete="off" spellcheck="false" placeholder="••••last4 guardado" />
+        </label>
+        <label class="check">
+          <input type="checkbox" id="edit-reapply" />
+          Re-aplicar fusión askbox tras guardar (requiere token nuevo o en el servidor)
+        </label>
+        <p class="browse-error hidden" id="edit-error" role="alert"></p>
+        <footer class="modal-footer">
+          <button type="submit" class="btn-primary" id="edit-save">Guardar</button>
+          <button type="button" class="btn-ghost" id="edit-cancel">Cancelar</button>
+        </footer>
+      </form>
+    </div>
+  </div>
 
   <div class="modal hidden" id="browse-modal" role="dialog" aria-modal="true" aria-labelledby="browse-title">
     <div class="modal-backdrop" id="browse-backdrop"></div>

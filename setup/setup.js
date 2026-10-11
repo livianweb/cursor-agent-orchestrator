@@ -132,11 +132,383 @@ function formatDate(iso) {
   }
 }
 
+function formatAskboxRow(row) {
+  const url = (row.askbox_api_url || "").trim();
+  const last4 = row.askbox_token_last4;
+  if (!url && !last4) return "Askbox: sin askbox";
+  let text = url ? `Askbox: ${url}` : "Askbox: (sin URL)";
+  if (last4) text += ` · ••••${last4}`;
+  else if (url) text += " · sin token registrado";
+  return text;
+}
+
+const kitUpdateBanner = document.getElementById("kit-update-banner");
+const kitUpdateDetail = document.getElementById("kit-update-detail");
+const kitUptodate = document.getElementById("kit-uptodate");
+const btnKitUpdate = document.getElementById("btn-kit-update");
+
+const editModal = document.getElementById("edit-modal");
+const editPathEl = document.getElementById("edit-path");
+const editForm = document.getElementById("edit-form");
+const editAskboxUrl = document.getElementById("edit-askbox-url");
+const editAskboxToken = document.getElementById("edit-askbox-token");
+const editReapply = document.getElementById("edit-reapply");
+const editError = document.getElementById("edit-error");
+let editTargetPath = null;
+let installationItems = [];
+let serverAskboxTokenConfigured = false;
+
+const syncModal = document.getElementById("sync-modal");
+const syncPathEl = document.getElementById("sync-path");
+const syncTokenField = document.getElementById("sync-token-field");
+const syncAskboxToken = document.getElementById("sync-askbox-token");
+const syncError = document.getElementById("sync-error");
+const btnSyncAll = document.getElementById("btn-sync-all");
+let syncTargetPath = null;
+let syncTargetRow = null;
+
+function syncNeedsToken(row) {
+  const url = (row?.askbox_api_url || "").trim();
+  const last4 = row?.askbox_token_last4;
+  return Boolean(url && last4 && !serverAskboxTokenConfigured);
+}
+
+async function postInstallationSync(path, token) {
+  const payload = { path };
+  if (token) payload.askbox_access_token = token;
+  const res = await fetch("/api/installations/sync", {
+    method: "POST",
+    headers: apiHeaders(),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { res, data };
+}
+
+async function runInstallationSync(path, token, uiBtn) {
+  if (uiBtn) {
+    uiBtn.disabled = true;
+    const prev = uiBtn.textContent;
+    uiBtn.textContent = "Actualizando…";
+    try {
+      const { res, data } = await postInstallationSync(path, token);
+      if (res.status === 428 || data.needs_token) {
+        const row = installationItems.find((r) => r.path === path);
+        if (row) openSyncModal(row, { forceToken: true });
+        else window.alert(data.error || "Se necesita el token askbox.");
+        return false;
+      }
+      if (!data.ok) {
+        window.alert(data.error || "No se pudo actualizar la instalación.");
+        return false;
+      }
+      await loadInstallations();
+      return true;
+    } catch {
+      window.alert("Sin conexión con el servidor.");
+      return false;
+    } finally {
+      uiBtn.disabled = false;
+      uiBtn.textContent = prev;
+    }
+  }
+  return false;
+}
+
+function openSyncModal(row, opts = {}) {
+  const { forceToken = false } = opts;
+  syncTargetPath = row.path;
+  syncTargetRow = row;
+  if (syncPathEl) syncPathEl.textContent = row.path;
+  if (syncAskboxToken) {
+    syncAskboxToken.value = "";
+    syncAskboxToken.placeholder = row.askbox_token_last4
+      ? `Token (••••${row.askbox_token_last4})`
+      : "Token askbox";
+  }
+  const showToken = forceToken || syncNeedsToken(row);
+  syncTokenField?.classList.toggle("hidden", !showToken);
+  if (syncError) {
+    syncError.classList.add("hidden");
+    syncError.textContent = "";
+  }
+  syncModal?.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  (showToken ? syncAskboxToken : document.getElementById("sync-run"))?.focus();
+}
+
+function closeSyncModal() {
+  syncModal?.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+  syncTargetPath = null;
+  syncTargetRow = null;
+}
+
+document.getElementById("sync-close")?.addEventListener("click", closeSyncModal);
+document.getElementById("sync-cancel")?.addEventListener("click", closeSyncModal);
+document.getElementById("sync-backdrop")?.addEventListener("click", closeSyncModal);
+
+document.getElementById("sync-run")?.addEventListener("click", async () => {
+  if (!syncTargetPath) return;
+  const token = (syncAskboxToken?.value || "").trim();
+  if (syncNeedsToken(syncTargetRow) && !token) {
+    if (syncError) {
+      syncError.textContent = "Introduce el token askbox para fusionar con askbox.";
+      syncError.classList.remove("hidden");
+    }
+    return;
+  }
+  const btn = document.getElementById("sync-run");
+  if (btn) btn.disabled = true;
+  try {
+    const { res, data } = await postInstallationSync(syncTargetPath, token || undefined);
+    if (res.status === 428 || data.needs_token) {
+      syncTokenField?.classList.remove("hidden");
+      if (syncError) {
+        syncError.textContent = data.error || "Se necesita el token askbox.";
+        syncError.classList.remove("hidden");
+      }
+      return;
+    }
+    if (!data.ok) {
+      if (syncError) {
+        syncError.textContent = data.error || "Error al actualizar.";
+        syncError.classList.remove("hidden");
+      }
+      return;
+    }
+    closeSyncModal();
+    await loadInstallations();
+  } catch {
+    if (syncError) {
+      syncError.textContent = "Sin conexión con el servidor.";
+      syncError.classList.remove("hidden");
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+});
+
+async function syncOneRow(row, btn) {
+  if (row.status === "missing") {
+    window.alert("La ruta del proyecto no existe en el disco.");
+    return;
+  }
+  if (syncNeedsToken(row)) {
+    openSyncModal(row);
+    return;
+  }
+  if (!window.confirm(`¿Actualizar el orquestador en\n${row.path}?`)) return;
+  await runInstallationSync(row.path, undefined, btn);
+}
+
+btnSyncAll?.addEventListener("click", async () => {
+  const okRows = installationItems.filter((r) => r.status === "ok");
+  if (!okRows.length) {
+    window.alert("No hay instalaciones válidas para actualizar.");
+    return;
+  }
+  const needsAnyToken = okRows.some((r) => syncNeedsToken(r));
+  if (needsAnyToken) {
+    window.alert(
+      "Algunas instalaciones necesitan token askbox en el servidor (ASKBOX_ACCESS_TOKEN) o actualízalas una a una."
+    );
+    return;
+  }
+  if (!window.confirm(`¿Actualizar ${okRows.length} instalación(es)?`)) return;
+  btnSyncAll.disabled = true;
+  const prev = btnSyncAll.textContent;
+  btnSyncAll.textContent = "Actualizando…";
+  try {
+    const res = await fetch("/api/installations/sync", {
+      method: "POST",
+      headers: apiHeaders(),
+      body: JSON.stringify({ all: true }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!data.ok && !data.results?.length) {
+      window.alert(data.error || "No se pudo actualizar.");
+      return;
+    }
+    const failed = (data.results || []).filter((r) => !r.ok && !r.skipped);
+    if (failed.length) {
+      window.alert(`${failed.length} instalación(es) fallaron. Revisa los logs del servidor.`);
+    }
+    await loadInstallations();
+  } catch {
+    window.alert("Sin conexión con el servidor.");
+  } finally {
+    btnSyncAll.disabled = false;
+    btnSyncAll.textContent = prev;
+  }
+});
+
+function renderKitStatus(data) {
+  if (!data?.ok) {
+    kitUpdateBanner?.classList.add("hidden");
+    kitUptodate?.classList.add("hidden");
+    return;
+  }
+  if (data.updates_available) {
+    kitUpdateBanner?.classList.remove("hidden");
+    kitUptodate?.classList.add("hidden");
+    if (kitUpdateDetail) {
+      const local = data.local_sha || "—";
+      const remote = data.remote_sha || "—";
+      kitUpdateDetail.textContent = `${data.branch || "rama"}: local ${local} → remoto ${remote} (${data.behind || 0} commit(s) pendiente(s))`;
+    }
+    if (btnKitUpdate) btnKitUpdate.disabled = false;
+  } else {
+    kitUpdateBanner?.classList.add("hidden");
+    if (kitUptodate && data.local_sha) {
+      kitUptodate.textContent = `Kit al día · ${data.local_sha}`;
+      kitUptodate.classList.remove("hidden");
+    } else {
+      kitUptodate?.classList.add("hidden");
+    }
+  }
+  if (kitMeta && data.kit_fingerprint) {
+    kitMeta.textContent = `Versión del kit en este clone: ${data.kit_fingerprint} (${data.local_sha || "?"})`;
+    kitMeta.classList.remove("hidden");
+  }
+}
+
+async function loadKitStatus() {
+  try {
+    const res = await fetch("/api/kit-update?fetch=1");
+    const data = await res.json().catch(() => ({}));
+    renderKitStatus(data);
+    return data;
+  } catch {
+    kitUpdateBanner?.classList.add("hidden");
+    return null;
+  }
+}
+
+async function runKitUpdate() {
+  if (!btnKitUpdate) return;
+  btnKitUpdate.disabled = true;
+  const prev = btnKitUpdate.textContent;
+  btnKitUpdate.textContent = "Actualizando…";
+  try {
+    const res = await fetch("/api/kit-update", { method: "POST", headers: apiHeaders() });
+    const data = await res.json().catch(() => ({}));
+    if (data.ok) {
+      renderKitStatus({ ...data, ok: true, updates_available: data.updates_available });
+      await loadInstallations();
+      if (data.panel_restart_recommended) {
+        window.alert(
+          "Kit actualizado. Reinicia el contenedor del panel para cargar el código nuevo:\n" +
+            "docker compose restart orchestrator-panel"
+        );
+      }
+    } else {
+      window.alert(data.error || "No se pudo actualizar el kit.");
+      await loadKitStatus();
+    }
+  } catch {
+    window.alert("Sin conexión con el servidor.");
+  } finally {
+    btnKitUpdate.textContent = prev;
+    btnKitUpdate.disabled = false;
+  }
+}
+
+btnKitUpdate?.addEventListener("click", runKitUpdate);
+
+function openEditModal(row) {
+  editTargetPath = row.path;
+  if (editPathEl) editPathEl.textContent = row.path;
+  if (editAskboxUrl) editAskboxUrl.value = row.askbox_api_url || "";
+  if (editAskboxToken) {
+    editAskboxToken.value = "";
+    editAskboxToken.placeholder = row.askbox_token_last4
+      ? `••••${row.askbox_token_last4} (deja vacío para mantener)`
+      : "Nuevo token (opcional)";
+  }
+  if (editReapply) editReapply.checked = false;
+  if (editError) {
+    editError.classList.add("hidden");
+    editError.textContent = "";
+  }
+  editModal?.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  editAskboxUrl?.focus();
+}
+
+function closeEditModal() {
+  editModal?.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+  editTargetPath = null;
+}
+
+document.getElementById("edit-close")?.addEventListener("click", closeEditModal);
+document.getElementById("edit-cancel")?.addEventListener("click", closeEditModal);
+document.getElementById("edit-backdrop")?.addEventListener("click", closeEditModal);
+
+editForm?.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  if (!editTargetPath) return;
+  const payload = {
+    path: editTargetPath,
+    askbox_api_url: (editAskboxUrl?.value || "").trim(),
+  };
+  const token = (editAskboxToken?.value || "").trim();
+  if (token) payload.askbox_access_token = token;
+  if (editReapply?.checked) payload.reapply = true;
+
+  if (editError) {
+    editError.classList.add("hidden");
+    editError.textContent = "";
+  }
+  const saveBtn = document.getElementById("edit-save");
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Guardando…";
+  }
+  try {
+    const res = await fetch("/api/installations", {
+      method: "PATCH",
+      headers: apiHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!data.ok) {
+      if (editError) {
+        editError.textContent = data.error || "No se pudo guardar.";
+        editError.classList.remove("hidden");
+      }
+      return;
+    }
+    if (payload.reapply && data.reapplied && data.ok === false) {
+      if (editError) {
+        editError.textContent = data.error || "Metadatos guardados; la re-aplicación falló.";
+        editError.classList.remove("hidden");
+      }
+      return;
+    }
+    closeEditModal();
+    await loadInstallations();
+  } catch {
+    if (editError) {
+      editError.textContent = "Sin conexión con el servidor.";
+      editError.classList.remove("hidden");
+    }
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Guardar";
+    }
+  }
+});
+
 async function loadInstallations() {
   try {
     const res = await fetch("/api/installations");
     const data = await res.json().catch(() => ({}));
     const items = data.installations || [];
+    installationItems = items;
+    btnSyncAll?.classList.toggle("hidden", items.filter((r) => r.status === "ok").length < 2);
     if (kitMeta && data.kit_fingerprint) {
       kitMeta.textContent = `Versión del kit en este clone: ${data.kit_fingerprint}`;
       kitMeta.classList.remove("hidden");
@@ -154,13 +526,32 @@ async function loadInstallations() {
           <code class="install-path">${escapeHtml(row.path)}</code>
           <span class="badge ${statusClass}">${status}</span>
         </div>
+        <div class="install-row-askbox">${escapeHtml(formatAskboxRow(row))}</div>
         <div class="install-row-meta">${formatDate(row.installed_at)}</div>
-        <button type="button" class="btn-ghost btn-uninstall" data-path="${escapeAttr(row.path)}">Desinstalar</button>
+        <div class="install-row-actions">
+          <button type="button" class="btn-ghost btn-sync" data-path="${escapeAttr(row.path)}"${row.status === "missing" ? " disabled" : ""}>Actualizar</button>
+          <button type="button" class="btn-ghost btn-edit" data-path="${escapeAttr(row.path)}">Editar</button>
+          <button type="button" class="btn-ghost btn-uninstall" data-path="${escapeAttr(row.path)}">Desinstalar</button>
+        </div>
       `;
       installList.appendChild(li);
     }
     installList.querySelectorAll(".btn-uninstall").forEach((btn) => {
       btn.addEventListener("click", () => uninstallOne(btn.getAttribute("data-path")));
+    });
+    installList.querySelectorAll(".btn-edit").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const path = btn.getAttribute("data-path");
+        const row = items.find((r) => r.path === path);
+        if (row) openEditModal(row);
+      });
+    });
+    installList.querySelectorAll(".btn-sync").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const path = btn.getAttribute("data-path");
+        const row = items.find((r) => r.path === path);
+        if (row) syncOneRow(row, btn);
+      });
     });
   } catch {
     installEmpty?.classList.remove("hidden");
@@ -322,6 +713,7 @@ async function loadSetupConfig() {
   try {
     const res = await fetch("/api/setup-config");
     const data = await res.json().catch(() => ({}));
+    serverAskboxTokenConfigured = Boolean(data.askbox_token_configured);
     if (data.askbox_token_configured && askboxTokenInput) {
       askboxTokenInput.setAttribute("data-server-token", "1");
       if (!askboxTokenInput.value.trim()) {
@@ -485,4 +877,5 @@ browseUse?.addEventListener("click", () => {
 
 loadSetupConfig();
 fetchAutoUpdateStatus();
+loadKitStatus();
 loadInstallations();

@@ -76,6 +76,16 @@ Montajes y variables: copia `.env.docker.example` → `.env` (`ORCHESTRATOR_KIT_
 
 Pasos detallados: [`docs/getting-started-after-clone.md`](docs/getting-started-after-clone.md).
 
+### Panel: instalaciones y askbox
+
+En **Instalaciones**, cada fila muestra la **URL askbox** (o «sin askbox») y, si guardaste un token al instalar o editar, solo **`••••` + últimos 4 caracteres** — nunca la clave completa (no se escribe en git ni en logs).
+
+- **Editar** (por proyecto): cambia la URL y, opcionalmente, un **token nuevo**; opcionalmente **re-aplicar fusión askbox** si URL + token están disponibles.
+- **Actualizar** (por proyecto): vuelve a ejecutar `install.sh` en esa ruta — copia piezas nuevas del kit y, si hay URL askbox guardada y token (en el diálogo o `ASKBOX_*` del contenedor), usa **`--merge-apply`**. **Actualizar todas** hace lo mismo en serie (requiere token en servidor si alguna instalación lo necesita).
+- Metadatos en `.askbox/installations.json` (gitignored): `path`, `installed_at`, `askbox_api_url`, `askbox_token_last4`.
+
+Opcional: si el clone del kit está detrás de `origin`, el panel puede mostrar **Actualizar kit** (`git pull --ff-only` del repositorio del orquestador, sin tocar proyectos).
+
 | Comando | Qué hace |
 |---------|----------|
 | `./install.sh` o `./install.sh --wizard` | `docker compose up -d --build`; API en `0.0.0.0:8765` (`CONFIGURE_PORT` / `CONFIGURE_TOKEN` en `.env`) |

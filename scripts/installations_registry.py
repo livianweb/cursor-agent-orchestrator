@@ -15,6 +15,14 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+def token_last4(token: str | None) -> str | None:
+    """Últimos 4 caracteres del token; nunca devuelve el valor completo."""
+    t = (token or "").strip()
+    if not t:
+        return None
+    return t[-4:] if len(t) > 4 else t
+
+
 def installations_path(kit_root: Path) -> Path:
     return kit_root / ".askbox" / INSTALLATIONS_FILE
 
@@ -107,6 +115,9 @@ def list_installations(kit_root: Path) -> list[dict[str, Any]]:
         if not path:
             continue
         exists = Path(path).is_dir()
+        askbox_url = entry.get("askbox_api_url")
+        if askbox_url is not None and not isinstance(askbox_url, str):
+            askbox_url = ""
         out.append(
             {
                 "path": path,
@@ -114,10 +125,30 @@ def list_installations(kit_root: Path) -> list[dict[str, Any]]:
                 "flags": entry.get("flags") or [],
                 "auto_update": entry.get("auto_update", True) is not False,
                 "kit_fingerprint": entry.get("kit_fingerprint"),
+                "askbox_api_url": (askbox_url or "").strip() if askbox_url is not None else "",
+                "askbox_token_last4": entry.get("askbox_token_last4") or None,
                 "status": "ok" if exists else "missing",
             }
         )
     return out
+
+
+def _apply_askbox_fields(
+    entry: dict[str, Any],
+    *,
+    askbox_api_url: str | None = None,
+    askbox_access_token: str | None = None,
+    clear_askbox: bool = False,
+) -> None:
+    if clear_askbox:
+        entry["askbox_api_url"] = ""
+        entry.pop("askbox_token_last4", None)
+        return
+    if askbox_api_url is not None:
+        entry["askbox_api_url"] = askbox_api_url.strip()
+    last4 = token_last4(askbox_access_token)
+    if last4 is not None:
+        entry["askbox_token_last4"] = last4
 
 
 def upsert_installation(
@@ -127,6 +158,8 @@ def upsert_installation(
     flags: list[str] | None = None,
     auto_update: bool = True,
     kit_fingerprint: str | None = None,
+    askbox_api_url: str | None = None,
+    askbox_access_token: str | None = None,
 ) -> dict[str, Any]:
     doc = load(kit_root)
     path = str(Path(project_path).resolve())
@@ -143,20 +176,64 @@ def upsert_installation(
             entry["auto_update"] = auto_update
             if kit_fingerprint:
                 entry["kit_fingerprint"] = kit_fingerprint
+            _apply_askbox_fields(
+                entry,
+                askbox_api_url=askbox_api_url,
+                askbox_access_token=askbox_access_token,
+            )
             found = True
             break
     if not found:
-        installations.append(
-            {
-                "path": path,
-                "installed_at": now,
-                "flags": flags,
-                "auto_update": auto_update,
-                "kit_fingerprint": kit_fingerprint,
-            }
+        new_entry: dict[str, Any] = {
+            "path": path,
+            "installed_at": now,
+            "flags": flags,
+            "auto_update": auto_update,
+            "kit_fingerprint": kit_fingerprint,
+        }
+        _apply_askbox_fields(
+            new_entry,
+            askbox_api_url=askbox_api_url if askbox_api_url is not None else "",
+            askbox_access_token=askbox_access_token,
         )
+        installations.append(new_entry)
     save(kit_root, doc)
     return {"ok": True, "path": path}
+
+
+def update_installation_askbox(
+    kit_root: Path,
+    project_path: str,
+    *,
+    askbox_api_url: str | None = None,
+    askbox_access_token: str | None = None,
+    clear_askbox: bool = False,
+) -> dict[str, Any]:
+    """Actualiza metadatos askbox de una instalación sin tocar installed_at."""
+    doc = load(kit_root)
+    path = str(Path(project_path).resolve())
+    for entry in doc.get("installations") or []:
+        if not isinstance(entry, dict):
+            continue
+        if (entry.get("path") or "").strip() != path:
+            continue
+        _apply_askbox_fields(
+            entry,
+            askbox_api_url=askbox_api_url,
+            askbox_access_token=askbox_access_token,
+            clear_askbox=clear_askbox,
+        )
+        save(kit_root, doc)
+        return {"ok": True, "path": path}
+    return {"ok": False, "error": "no estaba en el registro", "path": path}
+
+
+def get_installation_entry(kit_root: Path, project_path: str) -> dict[str, Any] | None:
+    path = str(Path(project_path).resolve())
+    for entry in load(kit_root).get("installations") or []:
+        if isinstance(entry, dict) and (entry.get("path") or "").strip() == path:
+            return entry
+    return None
 
 
 def remove_installation(kit_root: Path, project_path: str) -> dict[str, Any]:

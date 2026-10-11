@@ -707,6 +707,13 @@ code {
   border-left: 4px solid var(--accent-c);
 }
 
+.section-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .section-head {
   display: flex;
   flex-wrap: wrap;
@@ -727,6 +734,47 @@ code {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+}
+
+.kit-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(252, 211, 77, 0.45);
+  background: rgba(252, 211, 77, 0.12);
+}
+
+.kit-banner-detail {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: normal;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.kit-uptodate {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin: 0 0 0.75rem;
+}
+
+.install-row-askbox {
+  grid-column: 1 / -1;
+  font-size: 0.82rem;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.install-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-self: center;
 }
 
 .install-row {
@@ -760,8 +808,15 @@ code {
   color: var(--muted);
 }
 
+.edit-path {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  word-break: break-all;
+  margin: 0 0 1rem;
+  color: var(--muted);
+}
+
 .btn-uninstall {
-  align-self: center;
   color: #f87171;
   border-color: rgba(248, 113, 113, 0.45);
 }

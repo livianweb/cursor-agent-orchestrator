@@ -31,11 +31,15 @@ from auto_update_api import (  # noqa: E402
     set_auto_update_enabled,
 )
 from installations_registry import (  # noqa: E402
+    get_installation_entry,
     list_installations,
+    load,
     remove_installation,
+    update_installation_askbox,
     upsert_installation,
 )
 from kit_manifest import kit_fingerprint  # noqa: E402
+from kit_update_api import kit_git_status, run_kit_pull_only  # noqa: E402
 from browse_fs import list_subdirs, resolve_browse_path  # noqa: E402
 from uninstall_kit import uninstall_project  # noqa: E402
 
@@ -56,15 +60,41 @@ def _askbox_env_complete(env: dict[str, str]) -> bool:
     return bool(url and token)
 
 
-def _install_env_from_body(data: dict[str, Any]) -> dict[str, str]:
+def _install_env_from_body(
+    data: dict[str, Any],
+    *,
+    fallback_url: str | None = None,
+) -> dict[str, str]:
     env = {k: v for k, v in os.environ.items()}
     url = data.get("askbox_api_url")
     token = data.get("askbox_access_token")
     if isinstance(url, str) and url.strip():
         env["ASKBOX_API_URL"] = url.strip()
+    elif fallback_url and fallback_url.strip():
+        env["ASKBOX_API_URL"] = fallback_url.strip()
     if isinstance(token, str) and token.strip():
         env["ASKBOX_ACCESS_TOKEN"] = token.strip()
     return env
+
+
+def _askbox_persist_kwargs(data: dict[str, Any]) -> dict[str, str | None]:
+    """Campos seguros para el registro (nunca el token completo)."""
+    out: dict[str, str | None] = {}
+    if "askbox_api_url" in data:
+        raw = data.get("askbox_api_url")
+        out["askbox_api_url"] = raw.strip() if isinstance(raw, str) else ""
+    if "askbox_access_token" in data:
+        raw = data.get("askbox_access_token")
+        out["askbox_access_token"] = raw if isinstance(raw, str) and raw.strip() else None
+    return out
+
+
+def _registry_askbox_url(kit_root: Path, project_path: str) -> str:
+    path = str(Path(project_path).resolve())
+    for entry in load(kit_root).get("installations") or []:
+        if isinstance(entry, dict) and (entry.get("path") or "").strip() == path:
+            return (entry.get("askbox_api_url") or "").strip()
+    return ""
 
 
 def _default_install_flags_if_omitted(env: dict[str, str]) -> list[str]:
@@ -72,6 +102,32 @@ def _default_install_flags_if_omitted(env: dict[str, str]) -> list[str]:
     if _askbox_env_complete(env):
         return ["--merge-apply"]
     return []
+
+
+def _install_env_for_entry(data: dict[str, Any], entry: dict[str, Any]) -> dict[str, str]:
+    registry_url = (entry.get("askbox_api_url") or "").strip()
+    merge_body: dict[str, Any] = {}
+    if registry_url and "askbox_api_url" not in data:
+        merge_body["askbox_api_url"] = registry_url
+    if isinstance(data.get("askbox_access_token"), str) and data["askbox_access_token"].strip():
+        merge_body["askbox_access_token"] = data["askbox_access_token"].strip()
+    return _install_env_from_body(merge_body, fallback_url=registry_url or None)
+
+
+def resolve_sync_flags(entry: dict[str, Any], env: dict[str, str]) -> tuple[list[str], str | None]:
+    """Flags para re-sincronizar una instalación registrada."""
+    registry_url = (entry.get("askbox_api_url") or "").strip()
+    stored = [f for f in (entry.get("flags") or []) if isinstance(f, str)]
+    if registry_url:
+        if _askbox_env_complete(env):
+            if "--force" in stored:
+                return normalize_flags(stored), None
+            return ["--merge-apply"], None
+        if entry.get("askbox_token_last4"):
+            return [], "needs_token"
+    if stored:
+        return normalize_flags(stored), None
+    return [], None
 
 
 def _lan_ip() -> str:
@@ -210,7 +266,32 @@ class SetupHandler(SimpleHTTPRequestHandler):
                 },
             )
             return
+        if path_only == "/api/kit-update":
+            qs = parse_qs(parsed.query)
+            do_fetch = (qs.get("fetch") or ["1"])[0] not in ("0", "false", "no")
+            self._send_json(200, kit_git_status(ROOT, fetch=do_fetch))
+            return
         super().do_GET()
+
+    def do_PATCH(self) -> None:
+        parsed = urlparse(self.path)
+        if parsed.path.rstrip("/") != "/api/installations":
+            self.send_error(404)
+            return
+        if not self._check_token():
+            self._send_json(401, {"ok": False, "error": "no autorizado (CONFIGURE_TOKEN)"})
+            return
+        length = int(self.headers.get("Content-Length", "0") or "0")
+        if length > 65536:
+            self._send_json(413, {"ok": False, "error": "body demasiado grande"})
+            return
+        try:
+            raw = self.rfile.read(length).decode("utf-8")
+            data = json.loads(raw) if raw else {}
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            self._send_json(400, {"ok": False, "error": "JSON inválido"})
+            return
+        self._handle_installation_patch(data)
 
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)
@@ -234,7 +315,13 @@ class SetupHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path_only = urlparse(self.path).path.rstrip("/")
-        if path_only not in ("/api/install", "/api/auto-update", "/api/uninstall"):
+        if path_only not in (
+            "/api/install",
+            "/api/auto-update",
+            "/api/uninstall",
+            "/api/kit-update",
+            "/api/installations/sync",
+        ):
             self.send_error(404)
             return
         if not self._check_token():
@@ -252,6 +339,12 @@ class SetupHandler(SimpleHTTPRequestHandler):
             self._send_json(400, {"ok": False, "error": "JSON inválido"})
             return
 
+        if path_only == "/api/kit-update":
+            self._handle_kit_update_post()
+            return
+        if path_only == "/api/installations/sync":
+            self._handle_installation_sync_post(data)
+            return
         if path_only == "/api/auto-update":
             self._handle_auto_update_post(data)
             return
@@ -289,33 +382,23 @@ class SetupHandler(SimpleHTTPRequestHandler):
             self._send_json(500, {"ok": False, "error": "install.sh no encontrado en el kit"})
             return
 
-        env = install_env.copy()
-        env["ORCHESTRATOR_SKIP_REGISTER_TARGET"] = "1"
-
-        cmd = ["bash", str(INSTALL_SH), str(target)] + flags
-        try:
-            proc = subprocess.run(
-                cmd,
-                cwd=str(ROOT),
-                capture_output=True,
-                text=True,
-                timeout=600,
-                env=env,
-            )
-        except subprocess.TimeoutExpired:
-            self._send_json(504, {"ok": False, "error": "install superó el tiempo límite (600s)"})
+        proc_result = self._run_install_command(target, flags, install_env)
+        log = proc_result["log"]
+        ok = proc_result["ok"]
+        if proc_result["exit_code"] == -1 and not ok and "tiempo límite" in log:
+            self._send_json(504, {"ok": False, "error": log})
             return
-
-        log = (proc.stdout or "") + (proc.stderr or "")
-        ok = proc.returncode == 0
         if ok:
             want_auto = data.get("auto_update", True) is not False
+            askbox_kw = _askbox_persist_kwargs(data)
             upsert_installation(
                 ROOT,
                 str(target),
                 flags=flags,
                 auto_update=want_auto,
                 kit_fingerprint=kit_fingerprint(ROOT),
+                askbox_api_url=askbox_kw.get("askbox_api_url"),
+                askbox_access_token=askbox_kw.get("askbox_access_token"),
             )
             au = set_auto_update_enabled(ROOT, want_auto)
             if not au.get("ok"):
@@ -325,12 +408,156 @@ class SetupHandler(SimpleHTTPRequestHandler):
             200 if ok else 500,
             {
                 "ok": ok,
-                "exit_code": proc.returncode,
+                "exit_code": proc_result["exit_code"],
                 "path": str(target),
                 "flags": flags,
                 "log": log,
             },
         )
+
+    def _handle_installation_patch(self, data: dict[str, Any]) -> None:
+        try:
+            target = validate_install_path(data.get("path", ""))
+        except ValueError as e:
+            self._send_json(400, {"ok": False, "error": str(e)})
+            return
+
+        clear = data.get("clear_askbox") is True
+        askbox_kw = _askbox_persist_kwargs(data)
+        if clear:
+            result = update_installation_askbox(ROOT, str(target), clear_askbox=True)
+        elif "askbox_api_url" in data or "askbox_access_token" in data:
+            result = update_installation_askbox(
+                ROOT,
+                str(target),
+                askbox_api_url=askbox_kw.get("askbox_api_url"),
+                askbox_access_token=askbox_kw.get("askbox_access_token"),
+            )
+        else:
+            self._send_json(400, {"ok": False, "error": "indica askbox_api_url, askbox_access_token o clear_askbox"})
+            return
+
+        if not result.get("ok"):
+            self._send_json(404, result)
+            return
+
+        reapply = data.get("reapply") is True
+        if not reapply:
+            self._send_json(200, {"ok": True, "path": str(target), "reapplied": False})
+            return
+
+        sync_result = self._sync_registered_installation(target, data)
+        status = 200 if sync_result.get("ok") else (428 if sync_result.get("needs_token") else 500)
+        self._send_json(status, {**sync_result, "reapplied": True})
+
+    def _sync_registered_installation(self, target: Path, data: dict[str, Any]) -> dict[str, Any]:
+        entry = get_installation_entry(ROOT, str(target))
+        if not entry:
+            return {"ok": False, "error": "no estaba en el registro", "path": str(target)}
+        if not target.is_dir():
+            return {"ok": False, "error": "el directorio del proyecto no existe", "path": str(target)}
+        if not INSTALL_SH.is_file():
+            return {"ok": False, "error": "install.sh no encontrado en el kit", "path": str(target)}
+
+        install_env = _install_env_for_entry(data, entry)
+        try:
+            flags, flag_err = resolve_sync_flags(entry, install_env)
+        except ValueError as e:
+            return {"ok": False, "error": str(e), "path": str(target)}
+
+        if flag_err == "needs_token":
+            return {
+                "ok": False,
+                "needs_token": True,
+                "error": "Indica el token askbox (no se guarda completo; solo se usa para esta sincronización)",
+                "path": str(target),
+            }
+
+        proc_result = self._run_install_command(target, flags, install_env)
+        if proc_result["ok"]:
+            askbox_kw = _askbox_persist_kwargs(data)
+            upsert_installation(
+                ROOT,
+                str(target),
+                flags=flags,
+                auto_update=entry.get("auto_update", True) is not False,
+                kit_fingerprint=kit_fingerprint(ROOT),
+                askbox_api_url=askbox_kw.get("askbox_api_url"),
+                askbox_access_token=askbox_kw.get("askbox_access_token"),
+            )
+        return {
+            "ok": proc_result["ok"],
+            "path": str(target),
+            "exit_code": proc_result["exit_code"],
+            "flags": flags,
+            "log": proc_result["log"],
+            **({"error": proc_result["log"][:500]} if not proc_result["ok"] else {}),
+        }
+
+    def _handle_installation_sync_post(self, data: dict[str, Any]) -> None:
+        sync_all = data.get("all") is True
+        if sync_all:
+            results: list[dict[str, Any]] = []
+            any_ok = False
+            any_fail = False
+            for row in list_installations(ROOT):
+                if row.get("status") != "ok":
+                    results.append(
+                        {"ok": False, "path": row["path"], "error": "ruta no encontrada", "skipped": True}
+                    )
+                    any_fail = True
+                    continue
+                try:
+                    target = validate_install_path(row["path"])
+                except ValueError as e:
+                    results.append({"ok": False, "path": row["path"], "error": str(e)})
+                    any_fail = True
+                    continue
+                one = self._sync_registered_installation(target, data)
+                results.append(one)
+                if one.get("ok"):
+                    any_ok = True
+                else:
+                    any_fail = True
+            self._send_json(
+                200 if any_ok and not any_fail else (207 if any_ok else 500),
+                {"ok": any_ok and not any_fail, "all": True, "results": results},
+            )
+            return
+
+        try:
+            target = validate_install_path(data.get("path", ""))
+        except ValueError as e:
+            self._send_json(400, {"ok": False, "error": str(e)})
+            return
+
+        result = self._sync_registered_installation(target, data)
+        if result.get("needs_token"):
+            self._send_json(428, result)
+            return
+        self._send_json(200 if result.get("ok") else 500, result)
+
+    def _run_install_command(
+        self, target: Path, flags: list[str], env: dict[str, str]
+    ) -> dict[str, Any]:
+        if not INSTALL_SH.is_file():
+            return {"ok": False, "exit_code": -1, "log": "install.sh no encontrado en el kit"}
+        run_env = env.copy()
+        run_env["ORCHESTRATOR_SKIP_REGISTER_TARGET"] = "1"
+        cmd = ["bash", str(INSTALL_SH), str(target)] + flags
+        try:
+            proc = subprocess.run(
+                cmd,
+                cwd=str(ROOT),
+                capture_output=True,
+                text=True,
+                timeout=600,
+                env=run_env,
+            )
+        except subprocess.TimeoutExpired:
+            return {"ok": False, "exit_code": -1, "log": "install superó el tiempo límite (600s)"}
+        log = (proc.stdout or "") + (proc.stderr or "")
+        return {"ok": proc.returncode == 0, "exit_code": proc.returncode, "log": log}
 
     def _run_uninstall(self, target: Path) -> None:
         result = uninstall_project(target, dry_run=False)
@@ -354,6 +581,11 @@ class SetupHandler(SimpleHTTPRequestHandler):
                 "log": "\n".join(log_lines) or "Nada que quitar (piezas del kit ya ausentes).",
             },
         )
+
+    def _handle_kit_update_post(self) -> None:
+        result = run_kit_pull_only(ROOT)
+        status = 200 if result.get("ok") else 500
+        self._send_json(status, result)
 
     def _handle_auto_update_post(self, data: dict[str, Any]) -> None:
         if "enabled" not in data:
@@ -394,8 +626,10 @@ def main() -> None:
     print("  Panel:  gestiona instalaciones en el navegador (lista, nueva, desinstalar).")
     print("  API:    GET  /api/installations")
     print("          GET  /api/browse?path=/srv  (directorios del host)")
-    print("          POST /api/install  |  POST /api/uninstall  |  DELETE /api/installations?path=")
-    print("          GET/POST /api/auto-update  |  GET /api/setup-config")
+    print("          POST /api/install  |  POST /api/installations/sync  |  PATCH /api/installations")
+    print("          POST /api/uninstall")
+    print("          DELETE /api/installations?path=")
+    print("          GET/POST /api/auto-update  |  GET/POST /api/kit-update  |  GET /api/setup-config")
 
     try:
         httpd.serve_forever()
