@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# configure — asistente post-clone del kit (capas A/B/C). No usa askbox /settings/git.
+# configure — asistente post-clone del kit (capas A/B/C).
 #
 # Uso:
 #   ./configure              sirve setup/ en HTTP (LAN por defecto) y abre 127.0.0.1 en el navegador

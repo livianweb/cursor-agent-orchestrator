@@ -60,7 +60,7 @@ cd cursor-agent-orchestrator
 ```
 
 Pasos detallados: [`docs/getting-started-after-clone.md`](docs/getting-started-after-clone.md).
-La guía UI vive en `setup/` (no es la pantalla `/settings/git` de askbox).
+La guía UI vive en `setup/` y `./configure`.
 
 | Comando | Qué hace |
 |---------|----------|
@@ -161,8 +161,8 @@ siempre la decisión tomada, si la vía fue askbox o Cursor, el nivel de capacid
 ## Askbox vs orquestador vs git (3 configs)
 
 **Askbox** (producto gateway LLM) y **este kit** (orquestación Cursor) van por separado: remotos
-Git distintos, repos distintos, objetivos distintos. No asumas que «todo se configura en askbox»
-ni que la pantalla `/settings/git` de un despliegue askbox sustituye git en apps arbitrarias.
+Git distintos, repos distintos, objetivos distintos. Git de cada repo se configura en ese repo
+(`gh`, remoto, `.askbox/git-settings.json`); askbox solo entra en la **capa A** (LLM).
 
 | Capa | Qué | Dónde se configura |
 |------|-----|-------------------|
@@ -174,9 +174,8 @@ ni que la pantalla `/settings/git` de un despliegue askbox sustituye git en apps
 - **Capas B y C** → `.cursor/skills/git-autopilot/SKILL.md` y guía extendida en
   [`docs/git-and-askbox.md`](docs/git-and-askbox.md).
 
-El producto askbox puede montar repos hermanos (`ASKBOX_EXTRA_REPOS`, p. ej. este kit) y ofrecer
-`/settings/git?repo=…` como **conveniencia opcional** de deploy; el camino canónico del kit sigue
-siendo trabajar en su repo con git-autopilot + `gh` (o su propio `.askbox/git-settings.json`).
+El camino canónico del kit: trabajar en su repo con git-autopilot + `gh` (o
+`.askbox/git-settings.json` en el kit).
 
 ## Sincronización con askbox
 

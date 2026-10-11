@@ -99,9 +99,8 @@ git push origin master
 
 Mejoras a `.cursor/rules` o `.cursor/skills` del kit → commit aquí → push al remoto del kit.
 
-**No mezclar:** el remoto/PAT del kit no sirve para la app, ni al revés. La UI
-`/settings/git` de un despliegue askbox solo aplica a repos montados en ese servidor
-(`ASKBOX_EXTRA_REPOS`); el camino portable es `gh` + git local en cada repo.
+**No mezclar:** el remoto/PAT del kit no sirve para la app, ni al revés. En cada repo:
+`gh` + git local (y opcionalmente `.askbox/git-settings.json` en ese repo).
 
 ### 5. Trabajar
 
@@ -112,8 +111,7 @@ Mejoras a `.cursor/rules` o `.cursor/skills` del kit → commit aquí → push a
 
 - **No** sustituye la documentación del producto askbox.
 - **No** configura secretos en el repo (tokens van en env o en gh).
-- **No** es la pantalla `/settings/git` de askbox: la guía visual del kit vive en `setup/` y
-  `./configure`.
+- La guía visual del kit: `setup/` y `./configure`.
 
 ## Referencias
 
