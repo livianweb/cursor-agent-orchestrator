@@ -10,3 +10,8 @@ __pycache__/
 .env
 .env.*
 !*.env.example
+
+# Auto-update local por máquina (rutas de proyectos, logs, estado cron)
+.askbox/orchestrator-targets
+.askbox/auto-update.log
+.askbox/auto-update.state

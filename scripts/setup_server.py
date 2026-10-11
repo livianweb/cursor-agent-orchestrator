@@ -24,6 +24,14 @@ ROOT = Path(__file__).resolve().parent.parent
 SETUP_DIR = ROOT / "setup"
 INSTALL_SH = ROOT / "install.sh"
 
+sys.path.insert(0, str(ROOT / "scripts"))
+from auto_update_api import (  # noqa: E402
+    auto_update_status,
+    run_auto_update,
+    run_cron_installer,
+    validate_schedule,
+)
+
 ALLOWED_INSTALL_FLAGS = frozenset(
     {
         "--force",
@@ -121,10 +129,13 @@ class SetupHandler(SimpleHTTPRequestHandler):
         if self.path.rstrip("/") == "/api/health":
             self._send_json(200, {"ok": True, "service": "cursor-agent-orchestrator-setup"})
             return
+        if self.path.rstrip("/") == "/api/auto-update":
+            self._send_json(200, auto_update_status(ROOT))
+            return
         super().do_GET()
 
     def do_POST(self) -> None:
-        if self.path != "/api/install":
+        if self.path not in ("/api/install", "/api/auto-update"):
             self.send_error(404)
             return
         if not self._check_token():
@@ -140,6 +151,10 @@ class SetupHandler(SimpleHTTPRequestHandler):
             data = json.loads(raw) if raw else {}
         except (UnicodeDecodeError, json.JSONDecodeError):
             self._send_json(400, {"ok": False, "error": "JSON inválido"})
+            return
+
+        if self.path == "/api/auto-update":
+            self._handle_auto_update_post(data)
             return
 
         try:
@@ -187,6 +202,31 @@ class SetupHandler(SimpleHTTPRequestHandler):
             },
         )
 
+    def _handle_auto_update_post(self, data: dict[str, Any]) -> None:
+        action = data.get("action")
+        if not isinstance(action, str) or not action.strip():
+            self._send_json(400, {"ok": False, "error": "action es obligatorio"})
+            return
+        action = action.strip()
+        try:
+            schedule = validate_schedule(str(data.get("schedule") or ""))
+        except ValueError as e:
+            self._send_json(400, {"ok": False, "error": str(e)})
+            return
+
+        if action == "install_cron":
+            result = run_cron_installer(ROOT, remove=False, schedule=schedule)
+        elif action == "remove_cron":
+            result = run_cron_installer(ROOT, remove=True, schedule=schedule)
+        elif action == "run_now":
+            result = run_auto_update(ROOT)
+        else:
+            self._send_json(400, {"ok": False, "error": f"action desconocida: {action}"})
+            return
+
+        status = 200 if result.get("ok") else 500
+        self._send_json(status, result)
+
 
 def main() -> None:
     host = os.environ.get("CONFIGURE_HOST", "0.0.0.0")
@@ -210,6 +250,7 @@ def main() -> None:
     else:
         print("  Aviso:  sin CONFIGURE_TOKEN — cualquier cliente en la LAN puede llamar a POST /api/install")
     print("  API:    POST /api/install  {\"path\": \"/ruta/absoluta\", \"flags\": []}")
+    print("          GET/POST /api/auto-update  (cron diario del kit)")
 
     try:
         httpd.serve_forever()

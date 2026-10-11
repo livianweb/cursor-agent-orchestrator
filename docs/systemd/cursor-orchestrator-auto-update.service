@@ -1,0 +1,14 @@
+[Unit]
+Description=Auto-update cursor-agent-orchestrator kit and registered targets
+Documentation=file://%h/cursor-agent-orchestrator/docs/auto-update.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/cursor-agent-orchestrator
+Environment=ORCHESTRATOR_AUTO_UPDATE=1
+ExecStart=%h/cursor-agent-orchestrator/scripts/auto-update-kit.sh
+StandardOutput=append:%h/cursor-agent-orchestrator/.askbox/auto-update.log
+StandardError=append:%h/cursor-agent-orchestrator/.askbox/auto-update.log
+
+[Install]
+WantedBy=default.target

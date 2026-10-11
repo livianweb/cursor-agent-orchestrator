@@ -118,6 +118,41 @@
       <p class="hint">Skill: <code>git-autopilot</code> · Plantilla pantalla propia: <code>templates/git-settings-screen.md</code></p>
     </section>
 
+    <section class="card card--c card--auto-update" aria-labelledby="auto-update-heading">
+      <span class="badge">Capa C</span>
+      <h2 id="auto-update-heading">Actualización diaria del kit</h2>
+      <p>
+        En <strong>cada máquina</strong> con un clone del kit: <code>git pull --ff-only</code> y
+        vuelve a ejecutar <code>./install.sh</code> en los proyectos registrados en
+        <code>.askbox/orchestrator-targets</code> (se añaden solos al instalar).
+      </p>
+      <form id="auto-update-form" class="install-form" novalidate>
+        <label class="field" for="auto-update-schedule">
+          <span class="field-label">Horario cron (5 campos)</span>
+          <input
+            id="auto-update-schedule"
+            name="schedule"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            value="0 6 * * *"
+            placeholder="0 6 * * *"
+          />
+        </label>
+        <p class="hint">Por defecto 06:00 hora local. Desactivar sin borrar cron: <code>ORCHESTRATOR_AUTO_UPDATE=0</code> en la línea.</p>
+        <div class="form-actions form-actions--wrap">
+          <button type="button" class="btn-primary" id="auto-update-enable-btn">Activar cron</button>
+          <button type="button" class="btn-secondary" id="auto-update-disable-btn">Quitar cron</button>
+          <button type="button" class="btn-secondary" id="auto-update-run-btn">Ejecutar ahora</button>
+          <button type="button" class="btn-secondary" id="auto-update-copy-cron-btn">Copiar línea cron</button>
+          <span class="form-status" id="auto-update-status" role="status" aria-live="polite"></span>
+        </div>
+        <p class="hint" id="auto-update-meta"></p>
+        <pre class="env-preview hidden" id="auto-update-log" aria-label="Salida auto-update"></pre>
+      </form>
+      <p class="hint">CLI: <code>./scripts/install-auto-update-cron.sh</code> · Doc: <code>docs/auto-update.md</code></p>
+    </section>
+
     <section class="card card--c" aria-labelledby="layer-c">
       <span class="badge">Capa C</span>
       <h2 id="layer-c">Git del orquestador (este repo)</h2>

@@ -29,7 +29,9 @@ verás `http://127.0.0.1:8765/` y, si hay IP LAN, `http://<ip-lan>:8765/` para a
 | Método | Ruta | Cuerpo |
 |--------|------|--------|
 | `GET` | `/api/health` | — |
+| `GET` | `/api/auto-update` | Estado cron, `schedule`, `targets`, línea cron sugerida |
 | `POST` | `/api/install` | `{ "path": "/ruta/absoluta", "flags": ["--dry-run"] }` → JSON con `ok`, `log`, `exit_code` |
+| `POST` | `/api/auto-update` | `{ "action": "install_cron" \| "remove_cron" \| "run_now", "schedule": "0 6 * * *" }` |
 
 **Seguridad en LAN:** cualquier equipo en la red local puede llamar a `POST /api/install` y
 escribir en rutas del host. Mitigación opcional: `export CONFIGURE_TOKEN=…` y cabecera
@@ -40,8 +42,11 @@ Opciones útiles:
 ```bash
 ./configure --open-file  # guía en el navegador sin servidor HTTP
 ./configure --kit-git    # copia .askbox/git-settings.json.example → .askbox/git-settings.json (capa C)
+./scripts/install-auto-update-cron.sh   # cron diario 06:00 (cada clone / cada máquina)
 ./install.sh --help
 ```
+
+Auto-update del kit: [`auto-update.md`](auto-update.md).
 
 ## Paso a paso (≈5 minutos)
 

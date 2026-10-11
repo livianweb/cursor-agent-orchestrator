@@ -1,0 +1,7 @@
+# Rutas absolutas de proyectos donde ya ejecutaste ./install.sh.
+# Copia a orchestrator-targets (sin .example) o deja que install.sh registre tras cada install.
+#
+#   cp .askbox/orchestrator-targets.example .askbox/orchestrator-targets
+#
+# Una ruta por línea; líneas vacías y comentarios (#) se ignoran.
+# /srv/proyectos/mi-app

@@ -31,6 +31,8 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 | `configure` | Alias de `./install.sh`; utilidades `--kit-git`, `--open-file`, `--print`. |
 | `setup/index.html` | UI del wizard (instalar en ruta destino desde el navegador). |
 | `docs/getting-started-after-clone.md` | Flujo canónico clone → install → UI → git por capa. |
+| `scripts/auto-update-kit.sh` | `git pull --ff-only` del kit + `install.sh` en `.askbox/orchestrator-targets`. |
+| `scripts/install-auto-update-cron.sh` | Cron diario (06:00) por máquina; ver `docs/auto-update.md`. |
 
 ## Qué queda portable vs. qué añade cada app
 
@@ -69,6 +71,7 @@ Pasos detallados: [`docs/getting-started-after-clone.md`](docs/getting-started-a
 | `./configure --open-file` | Abre `setup/index.html` **sin** servidor (sin botón Instalar) |
 | `./configure --kit-git` | Crea `.askbox/git-settings.json` en el kit (capa C) |
 | `./install.sh DESTINO` | Copia rules/skills al **proyecto destino** (capa B), sin levantar el wizard |
+| `./scripts/install-auto-update-cron.sh` | Activa actualización diaria del kit en **esta** máquina (`ORCHESTRATOR_AUTO_UPDATE=0` para apagar) |
 
 ### Opción A — clonar e instalar en un proyecto existente
 

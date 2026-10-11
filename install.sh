@@ -283,6 +283,24 @@ fi
 
 run_policy_analysis
 
+register_orchestrator_target() {
+  if [ "$DRY_RUN" = "1" ]; then
+    return 0
+  fi
+  if [ "${ORCHESTRATOR_SKIP_REGISTER_TARGET:-}" = "1" ]; then
+    return 0
+  fi
+  local targets_file="$SCRIPT_DIR/.askbox/orchestrator-targets"
+  mkdir -p "$SCRIPT_DIR/.askbox"
+  if [ -f "$targets_file" ] && grep -qxF "$TARGET_DIR" "$targets_file" 2>/dev/null; then
+    return 0
+  fi
+  echo "$TARGET_DIR" >> "$targets_file"
+  echo "  + auto-update: registrado en .askbox/orchestrator-targets"
+}
+
+register_orchestrator_target
+
 echo
 echo "Resumen: $N_COPIED copiados, $N_IDENTICAL sin cambios, $N_SKIPPED en conflicto/saltados,"
 echo "         $N_BACKED_UP con backup, $N_MERGE_PROPOSALS propuestas de fusión, $N_MERGE_APPLIED fusiones aplicadas."
