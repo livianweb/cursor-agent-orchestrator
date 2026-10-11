@@ -3,40 +3,25 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Configurar cursor-agent-orchestrator</title>
+  <title>Instalar orquestador</title>
   <link rel="stylesheet" href="setup.css" />
 </head>
 <body>
   <a class="skip" href="#main">Saltar al contenido</a>
   <header class="top">
     <div class="wrap">
-      <p class="eyebrow">Kit portable · Cursor Auto + Multitask</p>
-      <h1>Configuración post-clone</h1>
-      <p class="lede">
-        Ya estás en el <strong>repo del orquestador</strong> (este wizard en <code>setup/</code>).
-        Aquí <strong>configuras</strong> el gateway askbox de tu cliente (<em>capa A</em>, opcional)
-        y <strong>copias</strong> rules/skills a la carpeta de tu aplicación (<em>capa B</em>).
-        La <em>capa C</em> es git y auto-actualización de <strong>este kit</strong>, no de tu app.
-      </p>
-      <p class="lede lede--compact">
-        Orden recomendado: <strong>Paso 1</strong> Askbox → <strong>Paso 2</strong> Instalar en proyecto →
-        <strong>Paso 3</strong> Git del kit.
-      </p>
+      <h1>Orquestador Cursor</h1>
+      <p class="lede">Configura askbox (opcional) e instala rules/skills en tu proyecto.</p>
     </div>
   </header>
 
   <main id="main" class="wrap">
-    <section class="card card--a" aria-labelledby="layer-a">
-      <span class="badge badge--step">Paso 1 · Askbox</span>
-      <span class="badge badge--layer" aria-hidden="true">Capa A</span>
-      <h2 id="layer-a">Askbox LLM (askbox-first)</h2>
-      <p>
-        Opcional: URL y token del <strong>gateway askbox del cliente</strong> (cada instancia puede ser distinta).
-        El agente los usa para UI y copy antes de gastar subagentes Cursor. Déjalos vacíos si aún no tienes askbox.
-      </p>
-      <form id="askbox-env-form" class="install-form askbox-form" novalidate>
+    <section class="card card--a" aria-labelledby="askbox-heading">
+      <p class="step-label">1 · Opcional</p>
+      <h2 id="askbox-heading">Askbox</h2>
+      <form id="askbox-env-form" class="stack-form" novalidate>
         <label class="field" for="askbox-api-url">
-          <span class="field-label">URL / IP de askbox (<code>ASKBOX_API_URL</code>)</span>
+          <span class="field-label">URL</span>
           <input
             id="askbox-api-url"
             name="askbox_api_url"
@@ -45,11 +30,11 @@
             autocomplete="off"
             spellcheck="false"
             value=""
-            placeholder="https://askbox.cliente.com/api o http://192.168.x.x:8066"
+            placeholder="https://…/api"
           />
         </label>
         <label class="field" for="askbox-access-token">
-          <span class="field-label">Token de proyecto (<code>ASKBOX_ACCESS_TOKEN</code>)</span>
+          <span class="field-label">Token</span>
           <input
             id="askbox-access-token"
             name="askbox_access_token"
@@ -57,28 +42,20 @@
             autocomplete="off"
             spellcheck="false"
             value=""
-            placeholder="ab_live_… (scope ask:read)"
+            placeholder="ab_live_…"
           />
         </label>
-        <p class="hint">Crear el token en la UI de tu instancia: <strong>/projects</strong> → tokens. No commitear ni pegar en git.</p>
         <div class="form-actions">
-          <button type="button" class="btn-secondary" id="askbox-copy-env">Copiar exports</button>
+          <button type="button" class="btn-ghost" id="askbox-copy-env">Copiar para el entorno</button>
           <span class="form-status" id="askbox-env-status" role="status" aria-live="polite"></span>
         </div>
-        <pre class="env-preview" id="askbox-env-preview" aria-label="Vista previa de variables de entorno"></pre>
       </form>
-      <p class="hint">Skill: <code>.cursor/skills/askbox-first/SKILL.md</code></p>
     </section>
 
     <section class="card card--b card--install" aria-labelledby="install-heading">
-      <span class="badge badge--step">Paso 2 · Proyecto</span>
-      <span class="badge badge--layer" aria-hidden="true">Capa B</span>
-      <h2 id="install-heading">Instalar en tu proyecto</h2>
-      <p>
-        Ruta absoluta del repo de tu app: aquí se copian <code>auto-orchestrator</code>, skills y el resto del kit
-        (equivale a <code>./install.sh /ruta</code>). Pulsa <strong>Instalar</strong> cuando la ruta sea correcta.
-      </p>
-      <form id="install-form" class="install-form" novalidate>
+      <p class="step-label">2</p>
+      <h2 id="install-heading">Instalar</h2>
+      <form id="install-form" class="stack-form" novalidate>
         <label class="field" for="project-path">
           <span class="field-label">Ruta del proyecto</span>
           <input
@@ -88,112 +65,80 @@
             required
             autocomplete="off"
             spellcheck="false"
-            placeholder="/ruta/absoluta/mi-app"
+            placeholder="/srv/mi-app"
           />
         </label>
-        <fieldset class="flags" aria-describedby="flags-hint">
-          <legend>Opciones (opcional)</legend>
-          <label class="check"><input type="checkbox" name="flag" value="--dry-run" /> Simular (<code>--dry-run</code>)</label>
-          <label class="check"><input type="checkbox" name="flag" value="--no-template" /> Sin plantilla de convenciones</label>
-          <label class="check"><input type="checkbox" name="flag" value="--merge" /> Fusión askbox (<code>--merge</code>)</label>
-          <label class="check"><input type="checkbox" name="flag" value="--merge-apply" /> Aplicar fusión askbox</label>
-          <label class="check"><input type="checkbox" name="flag" value="--force" id="flag-force" /> Forzar con backup (<code>--force</code>)</label>
-          <p id="flags-hint" class="hint">Por defecto no pisa archivos que ya existan y difieran.</p>
-        </fieldset>
-        <div class="form-actions">
-          <button type="submit" class="btn-primary" id="install-btn">Instalar</button>
-          <span class="form-status" id="install-status" role="status" aria-live="polite"></span>
+
+        <details class="advanced">
+          <summary>Avanzado</summary>
+          <fieldset class="flags">
+            <label class="check"><input type="checkbox" name="flag" value="--dry-run" /> Simular</label>
+            <label class="check"><input type="checkbox" name="flag" value="--no-template" /> Sin plantilla de convenciones</label>
+            <label class="check"><input type="checkbox" name="flag" value="--merge" /> Fusión askbox</label>
+            <label class="check"><input type="checkbox" name="flag" value="--merge-apply" /> Aplicar fusión</label>
+            <label class="check"><input type="checkbox" name="flag" value="--force" id="flag-force" /> Forzar (backup)</label>
+          </fieldset>
+        </details>
+
+        <button type="submit" class="btn-install" id="install-btn">Instalar</button>
+
+        <div class="install-progress hidden" id="install-progress" aria-live="polite">
+          <div class="progress-row">
+            <span class="spinner" aria-hidden="true"></span>
+            <span class="progress-label" id="install-status">Instalando…</span>
+          </div>
+          <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar"></div>
+          </div>
         </div>
+
+        <details class="log-details hidden" id="install-log-details">
+          <summary>Detalle</summary>
+          <pre class="install-log" id="install-log"></pre>
+        </details>
       </form>
-      <div class="install-log-wrap hidden" id="install-log-wrap">
-        <h3 class="log-title">Salida del instalador</h3>
-        <pre class="install-log" id="install-log"></pre>
-      </div>
-      <p class="conflict-note">
-        Solo copia piezas del orquestador (<code>multitask-ownership</code>, skills
-        <code>plan-implement-verify</code>, <code>askbox-first</code>, <code>git-autopilot</code>, etc.).
-        No borra tus <code>*-conventions.mdc</code>, hooks ni otros skills.
-      </p>
     </section>
 
-    <section class="card card--b" aria-labelledby="layer-b-git">
-      <span class="badge badge--step">Paso 2 · Git de la app</span>
-      <span class="badge badge--layer" aria-hidden="true">Capa B</span>
-      <h2 id="layer-b-git">Git de la aplicación</h2>
-      <p>Tras instalar, abre el <strong>proyecto destino</strong> en Cursor (modo Auto).
-        Commits autopilot van al remoto del repo <strong>abierto en Cursor</strong>, no al del kit.</p>
-      <ol>
-        <li>Opcional: <code>cp .askbox/git-settings.json.example .askbox/git-settings.json</code> en ese proyecto.</li>
-        <li><code>gh auth login</code> y <code>git remote add origin …</code> (o <code>gh repo create</code>) en el <em>proyecto</em>.</li>
-      </ol>
-      <p class="hint">Skill: <code>git-autopilot</code> · Plantilla pantalla propia: <code>templates/git-settings-screen.md</code></p>
-    </section>
+    <details class="card card--more" id="more-section">
+      <summary>Más</summary>
+      <div class="more-inner">
+        <h3 class="more-title">Auto-actualización del kit</h3>
+        <form id="auto-update-form" class="stack-form" novalidate>
+          <label class="field" for="auto-update-schedule">
+            <span class="field-label">Horario cron</span>
+            <input
+              id="auto-update-schedule"
+              name="schedule"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              value="0 6 * * *"
+            />
+          </label>
+          <div class="form-actions form-actions--wrap">
+            <button type="button" class="btn-ghost" id="auto-update-enable-btn">Activar</button>
+            <button type="button" class="btn-ghost" id="auto-update-disable-btn">Quitar</button>
+            <button type="button" class="btn-ghost" id="auto-update-run-btn">Ejecutar ahora</button>
+            <span class="form-status" id="auto-update-status" role="status" aria-live="polite"></span>
+          </div>
+          <p class="hint" id="auto-update-meta"></p>
+          <pre class="install-log hidden" id="auto-update-log"></pre>
+        </form>
 
-    <section class="card card--c card--auto-update" aria-labelledby="auto-update-heading">
-      <span class="badge badge--step">Paso 3 · Auto-update</span>
-      <span class="badge badge--layer" aria-hidden="true">Capa C</span>
-      <h2 id="auto-update-heading">Actualización diaria del kit</h2>
-      <p>
-        En <strong>cada máquina</strong> con un clone del kit: <code>git pull --ff-only</code> y
-        vuelve a ejecutar <code>./install.sh</code> en los proyectos registrados en
-        <code>.askbox/orchestrator-targets</code> (se añaden solos al instalar).
-      </p>
-      <form id="auto-update-form" class="install-form" novalidate>
-        <label class="field" for="auto-update-schedule">
-          <span class="field-label">Horario cron (5 campos)</span>
-          <input
-            id="auto-update-schedule"
-            name="schedule"
-            type="text"
-            autocomplete="off"
-            spellcheck="false"
-            value="0 6 * * *"
-            placeholder="0 6 * * *"
-          />
-        </label>
-        <p class="hint">Por defecto 06:00 hora local. Desactivar sin borrar cron: <code>ORCHESTRATOR_AUTO_UPDATE=0</code> en la línea.</p>
-        <div class="form-actions form-actions--wrap">
-          <button type="button" class="btn-primary" id="auto-update-enable-btn">Activar cron</button>
-          <button type="button" class="btn-secondary" id="auto-update-disable-btn">Quitar cron</button>
-          <button type="button" class="btn-secondary" id="auto-update-run-btn">Ejecutar ahora</button>
-          <button type="button" class="btn-secondary" id="auto-update-copy-cron-btn">Copiar línea cron</button>
-          <span class="form-status" id="auto-update-status" role="status" aria-live="polite"></span>
-        </div>
-        <p class="hint" id="auto-update-meta"></p>
-        <pre class="env-preview hidden" id="auto-update-log" aria-label="Salida auto-update"></pre>
-      </form>
-      <p class="hint">CLI: <code>./scripts/install-auto-update-cron.sh</code> · Doc: <code>docs/auto-update.md</code></p>
-    </section>
-
-    <section class="card card--c" aria-labelledby="layer-c">
-      <span class="badge badge--step">Paso 3 · Git del kit</span>
-      <span class="badge badge--layer" aria-hidden="true">Capa C</span>
-      <h2 id="layer-c">Git del orquestador (este repo)</h2>
-      <p>Cuando mejoras rules/skills del kit, commit y push al remoto <strong>de cursor-agent-orchestrator</strong>.</p>
-      <div class="cmd" data-copy="./configure --kit-git&#10;gh auth login&#10;git remote -v   # debe apuntar al repo del kit&#10;git push origin master">
-        <pre><code>./configure --kit-git
+        <h3 class="more-title">Git de este kit</h3>
+        <div class="cmd" data-copy="./configure --kit-git&#10;gh auth login&#10;git push origin master">
+          <pre><code>./configure --kit-git
 gh auth login
-git remote -v   # debe apuntar al repo del kit
 git push origin master</code></pre>
-        <button type="button" class="copy">Copiar</button>
+          <button type="button" class="copy">Copiar</button>
+        </div>
       </div>
-      <p class="hint">Remoto y push del kit: <code>gh</code>, git local y opcionalmente
-        <code>.askbox/git-settings.json</code> en este repo.</p>
-    </section>
-
-    <section class="card card--next" aria-labelledby="next">
-      <h2 id="next">Listo para trabajar</h2>
-      <ul>
-        <li>Rellena <code>.cursor/rules/&lt;proyecto&gt;-conventions.mdc</code> en tu app.</li>
-        <li>Lee <code>docs/getting-started-after-clone.md</code> y <code>docs/git-and-askbox.md</code>.</li>
-        <li>Vuelve a ejecutar <code>./install.sh</code> cuando quieras repasar los tres pasos.</li>
-      </ul>
-    </section>
+    </details>
   </main>
 
   <footer class="foot">
     <div class="wrap">
-      <p>cursor-agent-orchestrator · MIT · No almacena secretos en esta página</p>
+      <p>cursor-agent-orchestrator · MIT</p>
     </div>
   </footer>
   <script src="setup.js"></script>

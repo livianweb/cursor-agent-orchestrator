@@ -59,9 +59,16 @@ body {
 }
 
 .top {
-  padding: 2.5rem 0 1.5rem;
+  padding: 2rem 0 1.25rem;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, var(--surface) 0%, transparent 100%);
+}
+
+.top h1 {
+  margin-bottom: 0.35rem;
+}
+
+.top .lede {
+  font-size: 0.95rem;
 }
 
 .eyebrow {
@@ -104,9 +111,18 @@ main {
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
 }
 
+.step-label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .card h2 {
-  margin: 0.35rem 0 0.65rem;
-  font-size: 1.2rem;
+  margin: 0.15rem 0 0.85rem;
+  font-size: 1.25rem;
 }
 
 .card p,
@@ -252,12 +268,20 @@ code {
   color: var(--text);
 }
 
-.field input[type="text"] {
+.stack-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field input[type="text"],
+.field input[type="url"],
+.field input[type="password"] {
   width: 100%;
   font: inherit;
   font-family: var(--mono);
-  font-size: 0.9rem;
-  padding: 0.65rem 0.75rem;
+  font-size: 0.95rem;
+  padding: 0.7rem 0.85rem;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg);
@@ -269,17 +293,22 @@ code {
   outline-offset: 1px;
 }
 
-.flags {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  margin: 0 0 1rem;
+.advanced {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--muted);
 }
 
-.flags legend {
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0 0.25rem;
+.advanced summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 0.35rem 0;
+}
+
+.flags {
+  border: none;
+  padding: 0.5rem 0 0;
+  margin: 0;
 }
 
 .check {
@@ -386,17 +415,196 @@ code {
   margin: 0 0 0.35rem;
 }
 
+.btn-install {
+  width: 100%;
+  margin-top: 0.75rem;
+  font: inherit;
+  font-weight: 650;
+  font-size: 1.05rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent-b);
+  color: #0f1419;
+  cursor: pointer;
+}
+
+.btn-install:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.btn-install:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.btn-ghost {
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+.install-progress {
+  margin-top: 1rem;
+  padding: 0.85rem 0;
+}
+
+.install-progress.hidden {
+  display: none;
+}
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.5rem;
+}
+
+.progress-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.progress-label[data-kind="ok"] {
+  color: var(--accent-a);
+}
+
+.progress-label[data-kind="error"] {
+  color: #f87171;
+}
+
+.progress-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 35%;
+  border-radius: 999px;
+  background: var(--accent-b);
+  animation: progress-indeterminate 1.2s ease-in-out infinite;
+}
+
+.install-progress.is-done .progress-bar {
+  animation: none;
+  width: 100%;
+  background: var(--accent-a);
+}
+
+.install-progress.is-error .progress-bar {
+  animation: none;
+  width: 100%;
+  background: #f87171;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+.spinner {
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-b);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+.install-progress.is-done .spinner,
+.install-progress.is-error .spinner {
+  display: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.log-details {
+  margin-top: 0.75rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.log-details.hidden {
+  display: none;
+}
+
+.log-details summary {
+  cursor: pointer;
+}
+
+.card--more {
+  padding: 0;
+  border-left: 4px solid var(--accent-c);
+}
+
+.card--more > summary {
+  padding: 1rem 1.35rem;
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+
+.card--more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.card--more > summary::after {
+  content: " ▾";
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.card--more[open] > summary::after {
+  content: " ▴";
+}
+
+.more-inner {
+  padding: 0 1.35rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.more-title {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+
 .install-log {
-  margin: 0;
-  max-height: 16rem;
+  margin: 0.5rem 0 0;
+  max-height: 12rem;
   overflow: auto;
-  padding: 0.85rem 1rem;
+  padding: 0.75rem 0.85rem;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.install-log.hidden {
+  display: none;
 }

@@ -19,16 +19,38 @@ document.querySelectorAll(".cmd").forEach((block) => {
 const installForm = document.getElementById("install-form");
 const installBtn = document.getElementById("install-btn");
 const installStatus = document.getElementById("install-status");
-const installLogWrap = document.getElementById("install-log-wrap");
+const installProgress = document.getElementById("install-progress");
+const installLogDetails = document.getElementById("install-log-details");
 const installLog = document.getElementById("install-log");
 const pathInput = document.getElementById("project-path");
 const forceFlag = document.getElementById("flag-force");
 const mergeFlags = installForm?.querySelectorAll('input[value="--merge"], input[value="--merge-apply"]');
 
-function setStatus(text, kind) {
-  if (!installStatus) return;
-  installStatus.textContent = text;
-  installStatus.dataset.kind = kind || "";
+function setInstallUi(state, message) {
+  if (!installProgress || !installStatus) return;
+  installProgress.classList.remove("hidden", "is-done", "is-error");
+  installStatus.dataset.kind = "";
+  if (state === "busy") {
+    installStatus.textContent = message || "Instalando…";
+    installStatus.dataset.kind = "busy";
+  } else if (state === "ok") {
+    installProgress.classList.add("is-done");
+    installStatus.textContent = message || "Listo";
+    installStatus.dataset.kind = "ok";
+  } else if (state === "error") {
+    installProgress.classList.add("is-error");
+    installStatus.textContent = message || "Error";
+    installStatus.dataset.kind = "error";
+  }
+}
+
+function showLog(text, openDetails) {
+  if (!installLog || !installLogDetails) return;
+  installLog.textContent = text || "";
+  installLogDetails.classList.toggle("hidden", !text);
+  if (openDetails && text) {
+    installLogDetails.open = true;
+  }
 }
 
 function collectFlags() {
@@ -38,7 +60,7 @@ function collectFlags() {
     flags.push(el.value);
   });
   if (flags.includes("--force") && (flags.includes("--merge") || flags.includes("--merge-apply"))) {
-    throw new Error("--force no se puede combinar con fusión askbox.");
+    throw new Error("Forzar no se puede combinar con fusión askbox.");
   }
   return flags;
 }
@@ -71,12 +93,14 @@ if (installForm) {
     ev.preventDefault();
     const path = (pathInput?.value || "").trim();
     if (!path) {
-      setStatus("Indica una ruta absoluta.", "error");
+      setInstallUi("error", "Indica la ruta del proyecto.");
+      installProgress?.classList.remove("hidden");
       pathInput?.focus();
       return;
     }
     if (!path.startsWith("/")) {
-      setStatus("La ruta debe ser absoluta (empezar por /).", "error");
+      setInstallUi("error", "La ruta debe empezar por /.");
+      installProgress?.classList.remove("hidden");
       pathInput?.focus();
       return;
     }
@@ -85,14 +109,16 @@ if (installForm) {
     try {
       flags = collectFlags();
     } catch (err) {
-      setStatus(err.message || "Opciones inválidas.", "error");
+      setInstallUi("error", err.message || "Opciones inválidas.");
+      installProgress?.classList.remove("hidden");
       return;
     }
 
     installBtn.disabled = true;
-    setStatus("Instalando…", "busy");
-    if (installLogWrap) installLogWrap.classList.add("hidden");
-    if (installLog) installLog.textContent = "";
+    installProgress?.classList.remove("hidden", "is-done", "is-error");
+    setInstallUi("busy", "Instalando…");
+    showLog("", false);
+    if (installLogDetails) installLogDetails.open = false;
 
     const headers = { "Content-Type": "application/json" };
     const token = window.__CONFIGURE_TOKEN__;
@@ -107,21 +133,19 @@ if (installForm) {
         body: JSON.stringify({ path, flags }),
       });
       const data = await res.json().catch(() => ({}));
-      const log = data.log || "";
-      if (installLog) installLog.textContent = log || data.error || res.statusText;
-      if (installLogWrap) installLogWrap.classList.remove("hidden");
+      const log = data.log || data.error || res.statusText || "";
 
       if (data.ok) {
-        setStatus("Instalación completada.", "ok");
+        setInstallUi("ok", "Listo");
+        showLog(log, false);
       } else {
         const msg = data.error || `Error (código ${data.exit_code ?? res.status})`;
-        setStatus(msg, "error");
+        setInstallUi("error", msg);
+        showLog(log, true);
       }
     } catch {
-      setStatus(
-        "No se pudo contactar con el servidor. ¿Está ./install.sh en marcha en este host?",
-        "error"
-      );
+      setInstallUi("error", "Sin conexión con el servidor.");
+      showLog("¿Está ./install.sh en marcha en este equipo?", true);
     } finally {
       installBtn.disabled = false;
     }
@@ -130,7 +154,6 @@ if (installForm) {
 
 const askboxUrlInput = document.getElementById("askbox-api-url");
 const askboxTokenInput = document.getElementById("askbox-access-token");
-const askboxEnvPreview = document.getElementById("askbox-env-preview");
 const askboxCopyBtn = document.getElementById("askbox-copy-env");
 const askboxEnvStatus = document.getElementById("askbox-env-status");
 
@@ -141,32 +164,16 @@ function shellQuote(value) {
 function buildAskboxEnvExport() {
   const url = (askboxUrlInput?.value || "").trim();
   const token = (askboxTokenInput?.value || "").trim();
-  const lines = [
-    "# En ~/.bashrc, profile de Cursor, o env del agente:",
+  return [
     `export ASKBOX_API_URL=${url ? shellQuote(url) : '""'}`,
     `export ASKBOX_ACCESS_TOKEN=${token ? shellQuote(token) : '""'}`,
-  ];
-  return lines.join("\n");
-}
-
-function refreshAskboxEnvPreview() {
-  if (askboxEnvPreview) {
-    askboxEnvPreview.textContent = buildAskboxEnvExport();
-  }
+  ].join("\n");
 }
 
 function setAskboxEnvStatus(text, kind) {
   if (!askboxEnvStatus) return;
   askboxEnvStatus.textContent = text;
   askboxEnvStatus.dataset.kind = kind || "";
-}
-
-if (askboxUrlInput || askboxTokenInput) {
-  ["input", "change"].forEach((ev) => {
-    askboxUrlInput?.addEventListener(ev, refreshAskboxEnvPreview);
-    askboxTokenInput?.addEventListener(ev, refreshAskboxEnvPreview);
-  });
-  refreshAskboxEnvPreview();
 }
 
 const autoUpdateSchedule = document.getElementById("auto-update-schedule");
@@ -176,7 +183,6 @@ const autoUpdateLog = document.getElementById("auto-update-log");
 const autoUpdateEnableBtn = document.getElementById("auto-update-enable-btn");
 const autoUpdateDisableBtn = document.getElementById("auto-update-disable-btn");
 const autoUpdateRunBtn = document.getElementById("auto-update-run-btn");
-const autoUpdateCopyCronBtn = document.getElementById("auto-update-copy-cron-btn");
 
 function setAutoUpdateStatus(text, kind) {
   if (!autoUpdateStatus) return;
@@ -194,18 +200,9 @@ function autoUpdateHeaders() {
 function renderAutoUpdateMeta(data) {
   if (!autoUpdateMeta || !data) return;
   const parts = [];
-  if (data.cron_installed) {
-    parts.push(`Cron activo (${data.schedule || "0 6 * * *"}).`);
-  } else {
-    parts.push("Cron no instalado en este usuario.");
-  }
+  parts.push(data.cron_installed ? "Cron activo." : "Cron inactivo.");
   if (Array.isArray(data.targets) && data.targets.length) {
-    parts.push(`${data.targets.length} proyecto(s) en orchestrator-targets.`);
-  } else {
-    parts.push("Sin targets: solo se actualizará el clone del kit.");
-  }
-  if (!data.crontab_available) {
-    parts.push("crontab no disponible — usa «Copiar línea cron».");
+    parts.push(`${data.targets.length} proyecto(s) registrados.`);
   }
   autoUpdateMeta.textContent = parts.join(" ");
   if (autoUpdateSchedule && data.schedule) {
@@ -220,16 +217,14 @@ async function fetchAutoUpdateStatus() {
     renderAutoUpdateMeta(data);
     return data;
   } catch {
-    if (autoUpdateMeta) {
-      autoUpdateMeta.textContent = "No se pudo leer el estado (¿servidor del wizard en marcha?).";
-    }
+    if (autoUpdateMeta) autoUpdateMeta.textContent = "";
     return null;
   }
 }
 
 async function postAutoUpdate(action) {
   const schedule = (autoUpdateSchedule?.value || "0 6 * * *").trim();
-  setAutoUpdateStatus("Ejecutando…", "busy");
+  setAutoUpdateStatus("…", "busy");
   if (autoUpdateLog) {
     autoUpdateLog.classList.add("hidden");
     autoUpdateLog.textContent = "";
@@ -246,13 +241,9 @@ async function postAutoUpdate(action) {
       autoUpdateLog.classList.remove("hidden");
     }
     if (data.status) renderAutoUpdateMeta(data.status);
-    if (data.ok) {
-      setAutoUpdateStatus(action === "run_now" ? "Actualización completada." : "Hecho.", "ok");
-    } else {
-      setAutoUpdateStatus(data.error || "Error en la operación.", "error");
-    }
+    setAutoUpdateStatus(data.ok ? "Hecho." : data.error || "Error.", data.ok ? "ok" : "error");
   } catch {
-    setAutoUpdateStatus("Sin conexión con el wizard.", "error");
+    setAutoUpdateStatus("Sin conexión.", "error");
   }
 }
 
@@ -265,18 +256,6 @@ if (autoUpdateDisableBtn) {
 if (autoUpdateRunBtn) {
   autoUpdateRunBtn.addEventListener("click", () => postAutoUpdate("run_now"));
 }
-if (autoUpdateCopyCronBtn) {
-  autoUpdateCopyCronBtn.addEventListener("click", async () => {
-    const data = await fetchAutoUpdateStatus();
-    const line = data?.cron_line || `${(autoUpdateSchedule?.value || "0 6 * * *").trim()} ORCHESTRATOR_AUTO_UPDATE=1 …/scripts/auto-update-kit.sh`;
-    try {
-      await navigator.clipboard.writeText(line);
-      setAutoUpdateStatus("Línea cron copiada.", "ok");
-    } catch {
-      setAutoUpdateStatus("Copia manualmente desde docs/auto-update.md", "error");
-    }
-  });
-}
 
 fetchAutoUpdateStatus();
 
@@ -285,10 +264,10 @@ if (askboxCopyBtn) {
     const text = buildAskboxEnvExport();
     try {
       await navigator.clipboard.writeText(text);
-      setAskboxEnvStatus("Copiado al portapapeles.", "ok");
+      setAskboxEnvStatus("Copiado.", "ok");
       setTimeout(() => setAskboxEnvStatus(""), 2000);
     } catch {
-      setAskboxEnvStatus("Selecciona el bloque y copia manualmente.", "error");
+      setAskboxEnvStatus("No se pudo copiar.", "error");
     }
   });
 }
