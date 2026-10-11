@@ -472,18 +472,35 @@ editForm?.addEventListener("submit", async (ev) => {
       headers: apiHeaders(),
       body: JSON.stringify(payload),
     });
-    const data = await res.json().catch(() => ({}));
-    if (!data.ok) {
+    const raw = await res.text();
+    let data = {};
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
       if (editError) {
-        editError.textContent = data.error || "No se pudo guardar.";
+        const hint =
+          res.status === 501
+            ? "El panel no admite PATCH (reinicia el contenedor orchestrator-panel)."
+            : `HTTP ${res.status}`;
+        editError.textContent = hint;
         editError.classList.remove("hidden");
       }
       return;
     }
-    if (payload.reapply && data.reapplied && data.ok === false) {
+    if (!data.ok) {
       if (editError) {
-        editError.textContent = data.error || "Metadatos guardados; la re-aplicación falló.";
+        const msg = data.error || (res.status >= 400 ? `HTTP ${res.status}` : "No se pudo guardar.");
+        editError.textContent = msg;
         editError.classList.remove("hidden");
+      }
+      return;
+    }
+    if (data.reapply_error) {
+      closeEditModal();
+      await loadInstallations();
+      if (kitUptodate) {
+        kitUptodate.textContent = `Metadatos guardados. Re-aplicación: ${data.reapply_error}`;
+        kitUptodate.classList.remove("hidden");
       }
       return;
     }

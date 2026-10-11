@@ -70,12 +70,26 @@ def _install_env_from_body(
     url = data.get("askbox_api_url")
     token = data.get("askbox_access_token")
     if isinstance(url, str) and url.strip():
-        env["ASKBOX_API_URL"] = url.strip()
+        env["ASKBOX_API_URL"] = normalize_askbox_api_url(url)
     elif fallback_url and fallback_url.strip():
-        env["ASKBOX_API_URL"] = fallback_url.strip()
+        env["ASKBOX_API_URL"] = normalize_askbox_api_url(fallback_url)
     if isinstance(token, str) and token.strip():
         env["ASKBOX_ACCESS_TOKEN"] = token.strip()
     return env
+
+
+def normalize_askbox_api_url(raw: str) -> str:
+    """Base de API askbox: añade /api si solo se indicó el host (p. ej. askbox.example.com)."""
+    text = raw.strip().rstrip("/")
+    if not text:
+        return ""
+    parsed = urlparse(text)
+    if not parsed.scheme or not parsed.netloc:
+        return text
+    path = (parsed.path or "").strip("/")
+    if not path:
+        return f"{parsed.scheme}://{parsed.netloc}/api"
+    return text
 
 
 def _askbox_persist_kwargs(data: dict[str, Any]) -> dict[str, str | None]:
@@ -83,7 +97,9 @@ def _askbox_persist_kwargs(data: dict[str, Any]) -> dict[str, str | None]:
     out: dict[str, str | None] = {}
     if "askbox_api_url" in data:
         raw = data.get("askbox_api_url")
-        out["askbox_api_url"] = raw.strip() if isinstance(raw, str) else ""
+        out["askbox_api_url"] = (
+            normalize_askbox_api_url(raw) if isinstance(raw, str) else ""
+        )
     if "askbox_access_token" in data:
         raw = data.get("askbox_access_token")
         out["askbox_access_token"] = raw if isinstance(raw, str) and raw.strip() else None
@@ -444,12 +460,28 @@ class SetupHandler(SimpleHTTPRequestHandler):
 
         reapply = data.get("reapply") is True
         if not reapply:
-            self._send_json(200, {"ok": True, "path": str(target), "reapplied": False})
+            self._send_json(200, {"ok": True, "path": str(target), "saved": True, "reapplied": False})
             return
 
         sync_result = self._sync_registered_installation(target, data)
-        status = 200 if sync_result.get("ok") else (428 if sync_result.get("needs_token") else 500)
-        self._send_json(status, {**sync_result, "reapplied": True})
+        if sync_result.get("ok"):
+            self._send_json(
+                200,
+                {"ok": True, "saved": True, "reapplied": True, "path": str(target), **sync_result},
+            )
+            return
+        self._send_json(
+            200,
+            {
+                "ok": True,
+                "saved": True,
+                "reapplied": False,
+                "path": str(target),
+                "reapply_error": sync_result.get("error") or "La re-aplicación falló",
+                "reapply_needs_token": bool(sync_result.get("needs_token")),
+                "reapply_exit_code": sync_result.get("exit_code"),
+            },
+        )
 
     def _sync_registered_installation(self, target: Path, data: dict[str, Any]) -> dict[str, Any]:
         entry = get_installation_entry(ROOT, str(target))
