@@ -54,7 +54,9 @@ skills ajenos al kit.
 ./install.sh /ruta/a/mi-app                    # seguro: no pisa archivos que ya difieran
 ./install.sh /ruta/a/mi-app --dry-run          # simular
 ./install.sh /ruta/a/mi-app --no-template      # sin plantilla de convenciones
-./install.sh /ruta/a/mi-app --force            # backup .bak-* + sobrescribe lo que difiera
+./install.sh /ruta/a/mi-app --merge            # fusión askbox → *.merge-proposal (+ informe directivas)
+./install.sh /ruta/a/mi-app --merge-apply      # aplica fusión askbox con backup (capa A: ASKBOX_*)
+./install.sh /ruta/a/mi-app --force            # kit puro con backup (sin fusión)
 
 cd /ruta/a/mi-app
 # Si es proyecto nuevo y copiaste la plantilla:
@@ -66,9 +68,12 @@ gh auth login
 git remote add origin https://github.com/TU_USUARIO/mi-app.git   # o gh repo create
 ```
 
-**Conflictos en `.cursor/`:** archivo idéntico al kit → sin cambios; distinto → **skip** (salvo
-`--force`, que hace backup y copia). Lista cerrada: `auto-orchestrator.mdc`, `multitask-ownership.mdc`,
-skills `plan-implement-verify`, `askbox-first`, `git-autopilot`. Ver `./install.sh --help`.
+**Conflictos en `.cursor/`:** idéntico → sin cambios; distinto → **skip** por defecto. Con
+`--merge`, askbox (`POST /v1/ask`) propone texto fusionado en `*.merge-proposal` y analiza
+contradicciones entre convenciones y orquestador en `.cursor/install-merge-policy-report.md`.
+Sin `ASKBOX_API_URL` / `ASKBOX_ACCESS_TOKEN` se avisa y la propuesta es side-by-side para
+fusionar con Cursor. `--merge-apply` escribe la fusión con backup. `--force` sobrescribe el kit
+sin askbox. Lista cerrada de archivos: ver `./install.sh --help`.
 
 Abre **mi-app** en Cursor (Auto + Multitask). Los commits autopilot van al remoto de **mi-app**.
 

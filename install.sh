@@ -2,46 +2,85 @@
 # install.sh — instala el paradigma de orquestación Cursor (Auto + Multitask)
 # en un proyecto destino, sin pisar a ciegas lo que ya exista.
 #
+# Válido para repos NUEVOS (sin .cursor/) y EXISTENTES (con rules/skills/hooks propios).
+# Solo copia piezas del orquestador; no borra ni toca archivos fuera de la lista.
+#
 # Uso:
-#   ./install.sh [RUTA_PROYECTO_DESTINO] [--force] [--dry-run] [--no-template]
+#   ./install.sh [RUTA_PROYECTO_DESTINO] [opciones]
 #
-# - RUTA_PROYECTO_DESTINO: por defecto, el directorio actual (cwd).
-# - --force: si un archivo destino ya existe y difiere del origen, se hace backup
-#            (timestamp) y se sobrescribe. Sin --force, esos archivos se SALTAN.
-# - --dry-run: muestra qué haría, sin copiar ni crear nada.
-# - --no-template: no copia la plantilla de convenciones (templates/project-conventions.mdc.template).
+# Opciones:
+#   --force         backup (.bak-FECHA) + sobrescribe si el archivo difiere
+#   --merge         ante conflicto (mismo nombre, contenido distinto): propone fusión vía askbox
+#                   (POST /v1/ask); escribe *.merge-proposal sin pisar el destino
+#   --merge-apply   como --merge y además aplica la fusión al archivo destino (con backup)
+#   --dry-run       simula sin escribir
+#   --no-template   no copia plantillas de convenciones
 #
-# Idempotente: si el archivo destino es idéntico al origen, no hace nada (ni backup).
+# Política por defecto: idéntico → sin cambios | distinto → skip + aviso
+# Con --merge: askbox analiza kit vs proyecto; sin ASKBOX_* → aviso + side-by-side en .merge-proposal
+# Tras --merge/--merge-apply: informe de directivas contradictorias en
+#   .cursor/install-merge-policy-report.md (o .merge-proposal si no hay askbox)
+#
+# Archivos del kit (lista cerrada): auto-orchestrator.mdc, multitask-ownership.mdc,
+# skills plan-implement-verify, askbox-first, git-autopilot; plantillas opcionales.
+#
+# Idempotente: destino idéntico al kit → sin cambios.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MERGE_HELPER="$SCRIPT_DIR/scripts/install-merge-askbox.py"
 
 TARGET_DIR="."
 FORCE=0
+MERGE=0
+MERGE_APPLY=0
 DRY_RUN=0
 COPY_TEMPLATE=1
 
 for arg in "$@"; do
   case "$arg" in
     --force) FORCE=1 ;;
+    --merge) MERGE=1 ;;
+    --merge-apply) MERGE=1; MERGE_APPLY=1 ;;
     --dry-run) DRY_RUN=1 ;;
     --no-template) COPY_TEMPLATE=0 ;;
     -h|--help)
-      sed -n '1,20p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
+    --*) echo "Opción desconocida: $arg (usa --help)" >&2; exit 1 ;;
     *)
       TARGET_DIR="$arg"
       ;;
   esac
 done
 
+if [ "$FORCE" = "1" ] && [ "$MERGE" = "1" ]; then
+  echo "ERROR: --force y --merge/--merge-apply son incompatibles." >&2
+  exit 1
+fi
+
 TARGET_DIR="$(cd "$TARGET_DIR" 2>/dev/null && pwd || { echo "ERROR: no existe el directorio destino: $TARGET_DIR" >&2; exit 1; })"
 
 echo "Kit origen:      $SCRIPT_DIR"
 echo "Proyecto destino: $TARGET_DIR"
-[ "$FORCE" = "1" ] && echo "Modo: --force (sobrescribe con backup si difiere)"
+echo "Alcance: repos nuevos o existentes — lista cerrada de piezas del orquestador."
+if [ "$MERGE" = "1" ]; then
+  if [ "$MERGE_APPLY" = "1" ]; then
+    echo "Modo: fusión asistida (--merge-apply)"
+  else
+    echo "Modo: fusión asistida (--merge)"
+  fi
+  if [ -z "${ASKBOX_API_URL:-}" ] || [ -z "${ASKBOX_ACCESS_TOKEN:-}" ]; then
+    echo "Aviso: ASKBOX_API_URL / ASKBOX_ACCESS_TOKEN no configurados — fusión vía askbox no disponible;"
+    echo "       se generarán .merge-proposal side-by-side; usa Cursor para fusionar o exporta las variables."
+  fi
+elif [ "$FORCE" = "1" ]; then
+  echo "Modo: --force (backup + sobrescribe si difiere)"
+else
+  echo "Conflictos: por defecto skip; prueba --merge o --force."
+fi
 [ "$DRY_RUN" = "1" ] && echo "Modo: --dry-run (no se escribe nada)"
 echo
 
@@ -50,6 +89,70 @@ N_COPIED=0
 N_SKIPPED=0
 N_IDENTICAL=0
 N_BACKED_UP=0
+N_MERGE_PROPOSALS=0
+N_MERGE_APPLIED=0
+
+write_side_by_side_proposal() {
+  local src="$1" dest="$2" proposal="$3"
+  {
+    echo "# Propuesta de fusión (manual / fallback Cursor)"
+    echo "# Archivo: $dest"
+    echo "# Generado: $STAMP — askbox no disponible o falló; revisa con el agente Cursor."
+    echo
+    echo "## Proyecto (actual)"
+    echo '```'
+    cat "$dest"
+    echo '```'
+    echo
+    echo "## Kit (entrante)"
+    echo '```'
+    cat "$src"
+    echo '```'
+  } > "$proposal"
+}
+
+try_merge_conflict() {
+  local src="$1" dest="$2"
+  local proposal="${dest}.merge-proposal"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    echo "  ~ merge (dry-run): propondría fusión para $dest"
+    N_MERGE_PROPOSALS=$((N_MERGE_PROPOSALS + 1))
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$dest")"
+  local merged=""
+  local rc=0
+  if [ -f "$MERGE_HELPER" ] && command -v python3 >/dev/null 2>&1; then
+    set +e
+    merged="$(python3 "$MERGE_HELPER" file "$src" "$dest" 2>/dev/null)"
+    rc=$?
+    set -e
+  else
+    rc=2
+  fi
+
+  if [ "$rc" -eq 0 ] && [ -n "$merged" ]; then
+    printf '%s' "$merged" > "$proposal"
+    echo "  ~ fusión askbox → $proposal"
+    N_MERGE_PROPOSALS=$((N_MERGE_PROPOSALS + 1))
+    if [ "$MERGE_APPLY" = "1" ]; then
+      local backup="${dest}.bak-${STAMP}"
+      cp -p "$dest" "$backup"
+      printf '%s' "$merged" > "$dest"
+      echo "  * aplicada fusión (backup $backup)"
+      N_MERGE_APPLIED=$((N_MERGE_APPLIED + 1))
+      N_BACKED_UP=$((N_BACKED_UP + 1))
+    fi
+    return 0
+  fi
+
+  echo "  ~ fallback Cursor: side-by-side en $proposal"
+  write_side_by_side_proposal "$src" "$dest" "$proposal"
+  N_MERGE_PROPOSALS=$((N_MERGE_PROPOSALS + 1))
+  return 0
+}
 
 # copy_file SRC DEST
 copy_file() {
@@ -68,8 +171,13 @@ copy_file() {
       N_IDENTICAL=$((N_IDENTICAL + 1))
       return
     fi
+    if [ "$MERGE" = "1" ]; then
+      try_merge_conflict "$src" "$dest"
+      N_SKIPPED=$((N_SKIPPED + 1))
+      return
+    fi
     if [ "$FORCE" != "1" ]; then
-      echo "  ! ya existe y difiere (usa --force para sobrescribir): $dest"
+      echo "  ! ya existe y difiere (usa --force, --merge o --merge-apply): $dest"
       N_SKIPPED=$((N_SKIPPED + 1))
       return
     fi
@@ -89,6 +197,43 @@ copy_file() {
   N_COPIED=$((N_COPIED + 1))
 }
 
+run_policy_analysis() {
+  if [ "$MERGE" != "1" ] || [ "$DRY_RUN" = "1" ]; then
+    return 0
+  fi
+  local report="$TARGET_DIR/.cursor/install-merge-policy-report.md"
+  echo
+  echo "## Análisis de directivas (askbox)"
+  if [ ! -f "$MERGE_HELPER" ] || ! command -v python3 >/dev/null 2>&1; then
+    echo "  (omitido: falta $MERGE_HELPER o python3)"
+    return 0
+  fi
+  mkdir -p "$TARGET_DIR/.cursor"
+  local out=""
+  local rc=0
+  set +e
+  out="$(python3 "$MERGE_HELPER" policy "$TARGET_DIR" 2>/dev/null)"
+  rc=$?
+  set -e
+  if [ "$rc" -eq 0 ] && [ -n "$out" ]; then
+    {
+      echo "# Informe de directivas tras install --merge"
+      echo "_Generado: $STAMP"
+      echo
+      printf '%s' "$out"
+    } > "$report"
+    echo "  + informe: $report"
+    return 0
+  fi
+  local fallback="${report}.merge-proposal"
+  {
+    echo "# Análisis de directivas (pendiente)"
+    echo "askbox no disponible ($rc). Abre este proyecto en Cursor (Auto) y pide revisar"
+    echo "contradicciones entre *-conventions.mdc y las rules/skills del orquestador."
+  } > "$fallback"
+  echo "  ~ fallback: $fallback"
+}
+
 echo "## Rules portables"
 copy_file "$SCRIPT_DIR/.cursor/rules/auto-orchestrator.mdc" "$TARGET_DIR/.cursor/rules/auto-orchestrator.mdc"
 copy_file "$SCRIPT_DIR/.cursor/rules/multitask-ownership.mdc" "$TARGET_DIR/.cursor/rules/multitask-ownership.mdc"
@@ -106,15 +251,6 @@ if [ "$COPY_TEMPLATE" = "1" ]; then
   copy_file "$SCRIPT_DIR/templates/git-settings-screen.md" "$TARGET_DIR/.cursor/templates/git-settings-screen.md"
 fi
 
-echo
-echo "Resumen: $N_COPIED copiados, $N_IDENTICAL sin cambios, $N_SKIPPED saltados (ya existían y difieren), $N_BACKED_UP con backup."
-
-if [ "$N_SKIPPED" -gt 0 ] && [ "$DRY_RUN" != "1" ]; then
-  echo
-  echo "Algunos archivos ya existían con contenido distinto y se saltaron."
-  echo "Revísalos manualmente o vuelve a ejecutar con --force para sobrescribir (se hace backup .bak-${STAMP})."
-fi
-
 if [ -f "$SCRIPT_DIR/.askbox/git-settings.json.example" ]; then
   echo
   echo "## Preferencias Git (opcional, sin secretos)"
@@ -124,7 +260,25 @@ if [ -f "$SCRIPT_DIR/.askbox/git-settings.json.example" ]; then
   fi
 fi
 
+run_policy_analysis
+
 echo
-echo "Siguiente paso: renombra $TARGET_DIR/.cursor/rules/project-conventions.mdc.template"
-echo "a algo como <tu-proyecto>-conventions.mdc y rellena tus convenciones propias."
-echo "Git del proyecto (capa B): ver docs/git-and-askbox.md y .cursor/skills/git-autopilot/SKILL.md"
+echo "Resumen: $N_COPIED copiados, $N_IDENTICAL sin cambios, $N_SKIPPED en conflicto/saltados,"
+echo "         $N_BACKED_UP con backup, $N_MERGE_PROPOSALS propuestas de fusión, $N_MERGE_APPLIED fusiones aplicadas."
+
+if [ "$N_SKIPPED" -gt 0 ] && [ "$MERGE" != "1" ] && [ "$DRY_RUN" != "1" ]; then
+  echo
+  echo "Archivos distintos saltados. Opciones:"
+  echo "  ./install.sh $TARGET_DIR --merge        # propuesta en *.merge-proposal (+ informe de directivas)"
+  echo "  ./install.sh $TARGET_DIR --merge-apply  # aplica fusión askbox con backup"
+  echo "  ./install.sh $TARGET_DIR --force        # kit puro con backup (sin fusión)"
+fi
+
+if [ "$N_MERGE_PROPOSALS" -gt 0 ] && [ "$MERGE_APPLY" != "1" ] && [ "$DRY_RUN" != "1" ]; then
+  echo
+  echo "Revisa los *.merge-proposal; si están bien: mv archivo.merge-proposal archivo"
+  echo "o vuelve a ejecutar con --merge-apply (requiere ASKBOX_* para fusión automática)."
+fi
+
+echo
+echo "Siguiente: convenciones en <proyecto>-conventions.mdc · Git capa B: docs/git-and-askbox.md"

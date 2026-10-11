@@ -110,21 +110,28 @@ modifica el resto de `.cursor/` (p. ej. `mi-app-conventions.mdc`, hooks, skills 
 ### Flags de `install.sh`
 
 ```bash
-./install.sh [RUTA_PROYECTO_DESTINO] [--force] [--dry-run] [--no-template]
+./install.sh [RUTA_PROYECTO_DESTINO] [--force] [--merge] [--merge-apply] [--dry-run] [--no-template]
 ```
 
 - Sin flags: copia lo que falte; si un archivo destino **ya existe y es distinto**, lo **salta**
   (no pisa nada a ciegas) y te avisa.
-- `--force`: si el archivo destino difiere, hace **backup** (`archivo.bak-FECHA-HORA`) y
-  sobrescribe con la versión del kit.
+- `--merge`: mismo nombre y contenido distinto → **fusión asistida** con askbox (`POST /v1/ask`,
+  tier `balanced`). Escribe `archivo.merge-proposal` **sin pisar** el destino. Tras instalar,
+  genera `.cursor/install-merge-policy-report.md` analizando directivas contradictorias entre
+  convenciones del proyecto y el orquestador.
+- `--merge-apply`: como `--merge` y, si askbox devuelve fusión, **aplica** al archivo con backup
+  `.bak-FECHA`. Revisa propuestas antes si no confías en la salida.
+- Sin `ASKBOX_API_URL` / `ASKBOX_ACCESS_TOKEN`: se **anuncia** en consola; la propuesta es
+  side-by-side (proyecto vs kit) para fusionar con **Cursor** (heurística normal); no bloquea el resto del install.
+- `--force`: sobrescribe con backup (incompatible con `--merge`); no llama a askbox.
 - `--dry-run`: muestra qué haría, sin tocar el disco.
-- `--no-template`: no copia plantillas (por si ya tienes tu propia rule de convenciones y solo
-  quieres las piezas de orquestación).
-- **Idempotente**: si vuelves a ejecutarlo y nada cambió, no hace nada (ni backups innecesarios).
+- `--no-template`: no copia plantillas.
+- **Idempotente**: destino idéntico al kit → sin cambios.
 
-En un proyecto existente con orquestación ya instalada, vuelve a ejecutar sin flags para
-actualizar solo archivos **nuevos** del kit; los que hayas personalizado y difieran quedan
-intactos hasta que uses `--force` o fusiones a mano.
+Helper: `scripts/install-merge-askbox.py` (invocado por `install.sh`; usable en scripts propios).
+
+En un proyecto existente, vuelve a ejecutar sin flags para archivos **nuevos** del kit; los
+personalizados y distintos quedan intactos hasta `--merge`, `--merge-apply` o `--force`.
 
 ## Arrancar un proyecto nuevo con este paradigma en <5 minutos
 

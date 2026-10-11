@@ -41,9 +41,11 @@ cd cursor-agent-orchestrator
       </p>
       <ul class="conflict-list">
         <li>Sin flags: si un archivo ya existe y <strong>difiere</strong> → se <strong>salta</strong> y se avisa.</li>
+        <li><code>--merge</code>: askbox fusiona (capa A) → <code>*.merge-proposal</code> + informe de directivas.</li>
+        <li><code>--merge-apply</code>: aplica fusión askbox con backup (sin capa A: side-by-side + Cursor).</li>
         <li><code>--dry-run</code>: simula sin escribir.</li>
         <li><code>--no-template</code>: sin plantilla de convenciones (solo orquestación).</li>
-        <li><code>--force</code>: backup <code>.bak-…</code> y sobrescribe lo que difiera.</li>
+        <li><code>--force</code>: backup <code>.bak-…</code> y sobrescribe (sin fusión).</li>
       </ul>
     </section>
 
