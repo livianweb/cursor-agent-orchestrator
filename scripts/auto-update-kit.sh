@@ -23,6 +23,50 @@ log() {
   echo "$LOG_PREFIX $*"
 }
 
+_worktree_dirty() {
+  if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+    return 0
+  fi
+  if [ -n "$(git ls-files --others --exclude-standard)" ]; then
+    return 0
+  fi
+  return 1
+}
+
+# Fast-forward a upstream; si el worktree está sucio, reset (panel Docker sin commits locales) o stash+pull+pop.
+_sync_kit_to_upstream() {
+  local upstream="$1"
+  local local_sha remote_sha ahead behind
+
+  local_sha="$(git rev-parse HEAD)"
+  remote_sha="$(git rev-parse "$upstream")"
+  if [ "$local_sha" = "$remote_sha" ]; then
+    return 0
+  fi
+
+  ahead="$(git rev-list --count "${upstream}..HEAD" 2>/dev/null || echo 0)"
+  behind="$(git rev-list --count "HEAD..${upstream}" 2>/dev/null || echo 0)"
+
+  if _worktree_dirty; then
+    if [ "${ORCHESTRATOR_IN_DOCKER:-}" = "1" ] && [ "$ahead" = "0" ] && [ "$behind" != "0" ]; then
+      log "Worktree sucio sin commits locales — git reset --hard $upstream (panel Docker)"
+      git reset --hard "$upstream"
+      return 0
+    fi
+    log "Worktree con cambios locales — git stash push -u antes del pull"
+    git stash push -u -m "orchestrator-auto-update pre-pull $(date -Iseconds)"
+    git pull --ff-only
+    if git stash pop; then
+      log "Stash reaplicado tras pull."
+      return 0
+    fi
+    log "ERROR: conflicto al reaplicar stash; revisa git stash list en el clone del kit." >&2
+    return 1
+  fi
+
+  git pull --ff-only
+}
+
 if [ "${ORCHESTRATOR_AUTO_UPDATE:-1}" = "0" ]; then
   log "ORCHESTRATOR_AUTO_UPDATE=0 — omitido."
   exit 0
@@ -55,8 +99,8 @@ else
   if [ "$LOCAL" = "$REMOTE" ]; then
     log "Kit ya actualizado ($CURRENT_BRANCH @ ${LOCAL:0:8})."
   else
-    log "git pull --ff-only ($UPSTREAM)"
-    git pull --ff-only
+    log "Sincronizar kit con $UPSTREAM (ff-only)"
+    _sync_kit_to_upstream "$UPSTREAM"
     log "Kit actualizado a $(git rev-parse --short HEAD)."
   fi
 fi

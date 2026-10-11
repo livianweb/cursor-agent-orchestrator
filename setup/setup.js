@@ -6,6 +6,35 @@ function apiHeaders(json = true) {
   return headers;
 }
 
+/** Errores API legibles (nunca volcar stderr crudo de git en alert). */
+function formatServerError(data, fallback) {
+  const msg = (data?.user_error || data?.error || "").trim();
+  if (!msg) return fallback || "Operación fallida.";
+  const lower = msg.toLowerCase();
+  if (lower.includes("would be overwritten by merge") || lower.includes("please commit your changes")) {
+    return (
+      "No se pudo actualizar el kit: el clone del orquestador tiene cambios locales sin commitear. " +
+      "Alinea el directorio en el servidor (commit, stash o reset) y usa «Actualizar kit» en el banner."
+    );
+  }
+  return msg.length > 400 ? `${msg.slice(0, 400)}…` : msg;
+}
+
+function formatInstallSyncError(data) {
+  const msg = formatServerError(data, "No se pudo sincronizar la instalación.");
+  const lower = msg.toLowerCase();
+  if (lower.includes("orchestrator-auto-update") || lower.includes("git pull")) {
+    return (
+      "Ese error corresponde a la actualización del kit (git), no a la sincronización del proyecto. " +
+      "Usa «Actualizar kit» en el banner superior o alinea el clone en el servidor."
+    );
+  }
+  if (msg.length > 280) {
+    return "La sincronización no terminó bien. Revisa los logs del panel (install.sh en el servidor).";
+  }
+  return msg;
+}
+
 document.querySelectorAll(".cmd").forEach((block) => {
   const btn = block.querySelector(".copy");
   if (!btn) return;
@@ -199,7 +228,7 @@ async function runInstallationSync(path, token, uiBtn) {
         return false;
       }
       if (!data.ok) {
-        window.alert(data.error || "No se pudo actualizar la instalación.");
+        window.alert(formatInstallSyncError(data));
         return false;
       }
       await loadInstallations();
@@ -298,7 +327,7 @@ async function syncOneRow(row, btn) {
     openSyncModal(row);
     return;
   }
-  if (!window.confirm(`¿Actualizar el orquestador en\n${row.path}?`)) return;
+  if (!window.confirm(`¿Sincronizar el orquestador en\n${row.path}?\n(solo install.sh en ese proyecto, no actualiza el kit)`)) return;
   await runInstallationSync(row.path, undefined, btn);
 }
 
@@ -327,7 +356,7 @@ btnSyncAll?.addEventListener("click", async () => {
     });
     const data = await res.json().catch(() => ({}));
     if (!data.ok && !data.results?.length) {
-      window.alert(data.error || "No se pudo actualizar.");
+      window.alert(formatInstallSyncError(data));
       return;
     }
     const failed = (data.results || []).filter((r) => !r.ok && !r.skipped);
@@ -403,7 +432,7 @@ async function runKitUpdate() {
         );
       }
     } else {
-      window.alert(data.error || "No se pudo actualizar el kit.");
+      window.alert(formatServerError(data, "No se pudo actualizar el kit."));
       await loadKitStatus();
     }
   } catch {
@@ -546,7 +575,7 @@ async function loadInstallations() {
         <div class="install-row-askbox">${escapeHtml(formatAskboxRow(row))}</div>
         <div class="install-row-meta">${formatDate(row.installed_at)}</div>
         <div class="install-row-actions">
-          <button type="button" class="btn-ghost btn-sync" data-path="${escapeAttr(row.path)}"${row.status === "missing" ? " disabled" : ""}>Actualizar</button>
+          <button type="button" class="btn-ghost btn-sync" data-action="installation-sync" title="Re-ejecutar install.sh solo en este proyecto" data-path="${escapeAttr(row.path)}"${row.status === "missing" ? " disabled" : ""}>Sincronizar</button>
           <button type="button" class="btn-ghost btn-edit" data-path="${escapeAttr(row.path)}">Editar</button>
           <button type="button" class="btn-ghost btn-uninstall" data-path="${escapeAttr(row.path)}">Desinstalar</button>
         </div>
@@ -563,7 +592,7 @@ async function loadInstallations() {
         if (row) openEditModal(row);
       });
     });
-    installList.querySelectorAll(".btn-sync").forEach((btn) => {
+    installList.querySelectorAll(".btn-sync[data-action='installation-sync']").forEach((btn) => {
       btn.addEventListener("click", () => {
         const path = btn.getAttribute("data-path");
         const row = items.find((r) => r.path === path);

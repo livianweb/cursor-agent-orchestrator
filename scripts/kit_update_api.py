@@ -24,6 +24,32 @@ def _short(sha: str) -> str:
     return s[:12] if len(s) > 12 else s
 
 
+def user_facing_kit_error(log: str) -> str:
+    """Mensaje breve para la UI del panel (sin volcar stderr crudo de git)."""
+    text = (log or "").strip()
+    if not text:
+        return "No se pudo actualizar el kit del orquestador."
+    lower = text.lower()
+    if "would be overwritten by merge" in lower or "please commit your changes" in lower:
+        return (
+            "No se pudo actualizar el kit: el clone del orquestador tiene cambios locales sin commitear. "
+            "En el servidor, alinea el directorio con git (commit, stash o reset) y vuelve a pulsar «Actualizar kit»."
+        )
+    if "not possible to fast-forward" in lower or "divergent branches" in lower:
+        return (
+            "No se pudo actualizar el kit: la rama local no puede avanzar en fast-forward "
+            "(hay commits locales que no están en remoto)."
+        )
+    for line in reversed(text.splitlines()):
+        line = line.strip()
+        if not line or line.startswith("[orchestrator-auto-update"):
+            continue
+        if line.lower().startswith("error:"):
+            return line[:320]
+        return line[:320]
+    return "No se pudo actualizar el kit. Revisa los logs del panel en el servidor."
+
+
 def kit_git_status(kit_root: Path, *, fetch: bool = True) -> dict[str, Any]:
     """Compara HEAD local con origin/<rama actual>."""
     root = kit_root.resolve()
@@ -115,6 +141,7 @@ def run_kit_pull_only(kit_root: Path) -> dict[str, Any]:
     env = os.environ.copy()
     env["ORCHESTRATOR_AUTO_UPDATE"] = "1"
     env["ORCHESTRATOR_AUTO_UPDATE_DRY_RUN"] = "1"
+    env.setdefault("ORCHESTRATOR_IN_DOCKER", os.environ.get("ORCHESTRATOR_IN_DOCKER", ""))
     try:
         proc = subprocess.run(
             ["bash", str(script)],
@@ -143,5 +170,12 @@ def run_kit_pull_only(kit_root: Path) -> dict[str, Any]:
             "kit_fingerprint",
             "branch",
         ) if k in status},
-        **({"error": log.strip()[:500]} if proc.returncode != 0 else {}),
+        **(
+            {
+                "user_error": user_facing_kit_error(log),
+                "error": user_facing_kit_error(log),
+            }
+            if proc.returncode != 0
+            else {}
+        ),
     }
