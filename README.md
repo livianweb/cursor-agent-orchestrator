@@ -27,6 +27,9 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 | `templates/git-settings-screen.md` | Guía de contrato (endpoints, forma de datos, UI sugerida) para construir la pantalla de configuración Git de **tu** proyecto. |
 | `docs/git-and-askbox.md` | Las tres capas (LLM / git proyecto / git kit) y cómo no mezclarlas. |
 | `.askbox/git-settings.json.example` | Preferencias git no secretas por repo (copiar a `.askbox/git-settings.json` en proyecto o kit). |
+| `configure` | Asistente post-clone: abre la guía de setup (capas A/B/C). |
+| `setup/index.html` | UI estática del kit para configuración (independiente de askbox). |
+| `docs/getting-started-after-clone.md` | Flujo canónico clone → configure → install → git por capa. |
 
 ## Qué queda portable vs. qué añade cada app
 
@@ -45,11 +48,32 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 
 ## Instalación
 
+**URL del repositorio:** `https://github.com/livianweb/cursor-agent-orchestrator.git`
+
+### Tras `git clone` — configurar el kit (3 capas)
+
+```bash
+git clone https://github.com/livianweb/cursor-agent-orchestrator.git
+cd cursor-agent-orchestrator
+./configure          # guía visual: capas A (Askbox LLM), B (git proyecto), C (git kit)
+./install.sh /ruta/a/tu-proyecto
+```
+
+Pasos detallados: [`docs/getting-started-after-clone.md`](docs/getting-started-after-clone.md).
+La guía UI vive en `setup/` (no es la pantalla `/settings/git` de askbox).
+
+| Comando | Qué hace |
+|---------|----------|
+| `./configure` | Servidor local + `setup/index.html` con los tres bloques de config |
+| `./configure --kit-git` | Crea `.askbox/git-settings.json` en el kit (capa C) |
+| `./install.sh DESTINO` | Copia rules/skills al **proyecto destino** (capa B) |
+
 ### Opción A — clonar e instalar en un proyecto existente
 
 ```bash
-git clone <URL_DE_ESTE_REPO> cursor-agent-orchestrator
+git clone https://github.com/livianweb/cursor-agent-orchestrator.git
 cd cursor-agent-orchestrator
+./configure
 ./install.sh /ruta/a/tu-proyecto
 ```
 
@@ -88,17 +112,21 @@ Si publicaste este kit como repo público en GitHub, márcalo como **Template re
 ## Arrancar un proyecto nuevo con este paradigma en <5 minutos
 
 ```bash
-# 1. Instala el kit en tu proyecto (o en un repo recién creado)
-/ruta/a/cursor-agent-orchestrator/install.sh /ruta/a/tu-proyecto-nuevo
+git clone https://github.com/livianweb/cursor-agent-orchestrator.git
+cd cursor-agent-orchestrator
+./configure   # repasa capas A/B/C en el navegador
 
-# 2. Rellena tus convenciones propias
+# Capa A (opcional): export ASKBOX_API_URL y ASKBOX_ACCESS_TOKEN en el entorno Cursor
+
+# Capa B: instala en tu app
+./install.sh /ruta/a/tu-proyecto-nuevo
 cd /ruta/a/tu-proyecto-nuevo
 mv .cursor/rules/project-conventions.mdc.template .cursor/rules/mi-proyecto-conventions.mdc
-$EDITOR .cursor/rules/mi-proyecto-conventions.mdc   # puertos, stack, dominio, secretos, verify
+$EDITOR .cursor/rules/mi-proyecto-conventions.mdc
 
-# 3. Abre el proyecto en Cursor, modo Auto + Multitask.
-#    El padre ya sabe: cuándo planificar vs. ir directo, qué niveles usar,
-#    cómo no pisar escrituras entre Tasks paralelos.
+# Capa C (cuando toques el kit): gh auth + push desde cursor-agent-orchestrator
+
+# Abre tu-proyecto-nuevo en Cursor, modo Auto + Multitask.
 ```
 
 A partir de ahí, cualquier instrucción al padre en modo Auto sigue el flujo:

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Configurar cursor-agent-orchestrator</title>
+  <link rel="stylesheet" href="setup.css" />
+</head>
+<body>
+  <a class="skip" href="#main">Saltar al contenido</a>
+  <header class="top">
+    <div class="wrap">
+      <p class="eyebrow">Kit portable · Cursor Auto + Multitask</p>
+      <h1>Configuración post-clone</h1>
+      <p class="lede">
+        Tres capas independientes. Esta página vive en el <strong>repo del orquestador</strong>;
+        no sustituye la pantalla <code>/settings/git</code> del producto askbox.
+      </p>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+    <section class="card card--info" aria-labelledby="clone-heading">
+      <h2 id="clone-heading">0. Clonar e instalar</h2>
+      <p>URL del repositorio del kit (sustituye si usas un fork):</p>
+      <div class="cmd" data-copy="git clone https://github.com/livianweb/cursor-agent-orchestrator.git&#10;cd cursor-agent-orchestrator&#10;./configure">
+        <pre><code>git clone https://github.com/livianweb/cursor-agent-orchestrator.git
+cd cursor-agent-orchestrator
+./configure</code></pre>
+        <button type="button" class="copy">Copiar</button>
+      </div>
+      <p>Instalar rules/skills en <em>tu</em> aplicación (capa B, repo destino):</p>
+      <div class="cmd" data-copy="./install.sh /ruta/a/tu-proyecto">
+        <pre><code>./install.sh /ruta/a/tu-proyecto</code></pre>
+        <button type="button" class="copy">Copiar</button>
+      </div>
+    </section>
+
+    <section class="card card--a" aria-labelledby="layer-a">
+      <span class="badge">Capa A</span>
+      <h2 id="layer-a">Askbox LLM (askbox-first)</h2>
+      <p>Opcional pero recomendado: el agente usa el gateway askbox para UI/copy antes de gastar subagentes Cursor.</p>
+      <ul>
+        <li><code>ASKBOX_API_URL</code> — base de la API, p. ej. <code>http://127.0.0.1:8066</code></li>
+        <li><code>ASKBOX_ACCESS_TOKEN</code> — token de proyecto <code>ab_live_…</code> (scope <code>ask:read</code>)</li>
+      </ul>
+      <p>Crear el token en la UI de askbox: <strong>/projects</strong> → tokens. No commitear ni pegar en git.</p>
+      <div class="cmd" data-copy="# En ~/.bashrc, profile de Cursor, o env del agente:&#10;export ASKBOX_API_URL=&quot;http://127.0.0.1:8066&quot;&#10;export ASKBOX_ACCESS_TOKEN=&quot;ab_live_…&quot;">
+        <pre><code># En ~/.bashrc, profile de Cursor, o env del agente:
+export ASKBOX_API_URL="http://127.0.0.1:8066"
+export ASKBOX_ACCESS_TOKEN="ab_live_…"</code></pre>
+        <button type="button" class="copy">Copiar plantilla</button>
+      </div>
+      <p class="hint">Skill: <code>.cursor/skills/askbox-first/SKILL.md</code></p>
+    </section>
+
+    <section class="card card--b" aria-labelledby="layer-b">
+      <span class="badge">Capa B</span>
+      <h2 id="layer-b">Git del proyecto destino</h2>
+      <p>Commits autopilot van al remoto del repo que tienes <strong>abierto en Cursor</strong> (tu app), no al del kit.</p>
+      <ol>
+        <li>Tras <code>./install.sh …</code>, abre el proyecto destino en Cursor (modo Auto).</li>
+        <li>Opcional: <code>cp .askbox/git-settings.json.example .askbox/git-settings.json</code> en ese proyecto.</li>
+        <li><code>gh auth login</code> y <code>git remote add origin …</code> (o <code>gh repo create</code>) en el <em>proyecto</em>.</li>
+      </ol>
+      <p class="hint">Skill: <code>git-autopilot</code> · Plantilla pantalla propia: <code>templates/git-settings-screen.md</code></p>
+    </section>
+
+    <section class="card card--c" aria-labelledby="layer-c">
+      <span class="badge">Capa C</span>
+      <h2 id="layer-c">Git del orquestador (este repo)</h2>
+      <p>Cuando mejoras rules/skills del kit, commit y push al remoto <strong>de cursor-agent-orchestrator</strong>.</p>
+      <div class="cmd" data-copy="./configure --kit-git&#10;gh auth login&#10;git remote -v   # debe apuntar al repo del kit&#10;git push origin master">
+        <pre><code>./configure --kit-git
+gh auth login
+git remote -v   # debe apuntar al repo del kit
+git push origin master</code></pre>
+        <button type="button" class="copy">Copiar</button>
+      </div>
+      <p>Si un despliegue askbox monta este repo en <code>EXTRA_REPOS</code>, puedes usar
+        <code>/settings/git?repo=cursor-agent-orchestrator</code> como atajo — sigue siendo git del kit, no “git global”.</p>
+    </section>
+
+    <section class="card card--next" aria-labelledby="next">
+      <h2 id="next">Listo para trabajar</h2>
+      <ul>
+        <li>Rellena <code>.cursor/rules/&lt;proyecto&gt;-conventions.mdc</code> en tu app.</li>
+        <li>Lee <code>docs/getting-started-after-clone.md</code> y <code>docs/git-and-askbox.md</code>.</li>
+        <li>Vuelve a ejecutar <code>./configure</code> cuando quieras repasar las tres capas.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap">
+      <p>cursor-agent-orchestrator · MIT · No almacena secretos en esta página</p>
+    </div>
+  </footer>
+  <script src="setup.js"></script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+:root {
+  color-scheme: light dark;
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --border: #2d3a4d;
+  --text: #e8eef5;
+  --muted: #9aabbd;
+  --accent-a: #6ee7b7;
+  --accent-b: #93c5fd;
+  --accent-c: #fcd34d;
+  --info: #a5b4fc;
+  --radius: 12px;
+  --font: system-ui, "Segoe UI", Roboto, Ubuntu, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f4f6f9;
+    --surface: #fff;
+    --border: #d8dee8;
+    --text: #1a2332;
+    --muted: #5a6578;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+}
+.skip:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 9;
+  padding: 0.5rem 1rem;
+  background: var(--surface);
+  border-radius: 6px;
+}
+
+.wrap {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+.top {
+  padding: 2.5rem 0 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--surface) 0%, transparent 100%);
+}
+
+.eyebrow {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+h1 {
+  font-size: clamp(1.6rem, 4vw, 2rem);
+  margin: 0 0 0.75rem;
+  font-weight: 650;
+}
+
+.lede {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+main {
+  padding: 1.75rem 0 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+.card h2 {
+  margin: 0.35rem 0 0.65rem;
+  font-size: 1.2rem;
+}
+
+.card p,
+.card li {
+  color: var(--muted);
+}
+
+.card ul,
+.card ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--border);
+  color: var(--text);
+}
+
+.card--a { border-left: 4px solid var(--accent-a); }
+.card--b { border-left: 4px solid var(--accent-b); }
+.card--c { border-left: 4px solid var(--accent-c); }
+.card--info { border-left: 4px solid var(--info); }
+
+.hint {
+  font-size: 0.88rem;
+  margin-bottom: 0;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  background: var(--bg);
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+}
+
+.cmd {
+  position: relative;
+  margin: 0.75rem 0;
+}
+
+.cmd pre {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  padding-right: 6.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.cmd code {
+  background: transparent;
+  padding: 0;
+}
+
+.copy {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.copy:hover {
+  filter: brightness(1.08);
+}
+
+.copy:focus-visible {
+  outline: 2px solid var(--accent-b);
+  outline-offset: 2px;
+}
+
+.foot {
+  border-top: 1px solid var(--border);
+  padding: 1.25rem 0 2rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.foot p {
+  margin: 0;
+}
