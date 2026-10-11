@@ -6,13 +6,39 @@
 #   ./configure --print      solo imprime la URL file:// y los pasos
 #   ./configure --kit-git    inicializa .askbox/git-settings.json del kit (capa C)
 #
+#   CONFIGURE_HOST (default 0.0.0.0) — interfaz del http.server; 127.0.0.1 solo localhost
+#   CONFIGURE_PORT (default 8765)
+#
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SETUP_DIR="$ROOT/setup"
 INDEX="$SETUP_DIR/index.html"
+HOST="${CONFIGURE_HOST:-0.0.0.0}"
 PORT="${CONFIGURE_PORT:-8765}"
 PRINT_ONLY=0
+
+configure_lan_ip() {
+  local ip=""
+  if command -v ip >/dev/null 2>&1; then
+    ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i == "src") { print $(i + 1); exit }}')"
+  fi
+  if [ -z "$ip" ] && command -v hostname >/dev/null 2>&1; then
+    ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  fi
+  printf '%s' "$ip"
+}
+
+print_serve_urls() {
+  echo "  Local:  http://127.0.0.1:$PORT/"
+  local lan
+  lan="$(configure_lan_ip)"
+  if [ -n "$lan" ] && [ "$HOST" != "127.0.0.1" ]; then
+    echo "  Red:    http://${lan}:$PORT/  (otros equipos en la LAN)"
+  elif [ "$HOST" = "127.0.0.1" ]; then
+    echo "  (solo localhost; para LAN: CONFIGURE_HOST=0.0.0.0 ./configure)"
+  fi
+}
 INIT_KIT_GIT=0
 
 for arg in "$@"; do
@@ -56,21 +82,22 @@ FILE_URL="file://$INDEX"
 
 if [ "$PRINT_ONLY" = "1" ]; then
   echo "Abre en el navegador: $FILE_URL"
-  echo "O sirve la carpeta setup:  cd setup && python3 -m http.server $PORT"
+  echo "O sirve la carpeta setup (bind $HOST):"
+  print_serve_urls
+  echo "  Comando:  cd setup && python3 -m http.server $PORT --bind $HOST"
   exit 0
 fi
 
 if command -v python3 >/dev/null 2>&1; then
-  echo "Sirviendo setup en http://127.0.0.1:$PORT/ (Ctrl+C para parar)"
+  echo "Sirviendo setup en $HOST:$PORT (Ctrl+C para parar)"
+  print_serve_urls
   if command -v xdg-open >/dev/null 2>&1; then
     (sleep 0.4 && xdg-open "http://127.0.0.1:$PORT/" ) >/dev/null 2>&1 &
   elif command -v open >/dev/null 2>&1; then
     (sleep 0.4 && open "http://127.0.0.1:$PORT/" ) >/dev/null 2>&1 &
-  else
-    echo "Abre manualmente: http://127.0.0.1:$PORT/"
   fi
   cd "$SETUP_DIR"
-  exec python3 -m http.server "$PORT" --bind 127.0.0.1
+  exec python3 -m http.server "$PORT" --bind "$HOST"
 fi
 
 echo "Python3 no encontrado. Abre: $FILE_URL"

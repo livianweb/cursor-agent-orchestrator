@@ -12,8 +12,10 @@ por separado; la configuración tiene **tres capas** (ver también [`git-and-ask
 | Asistente visual (capas A/B/C) | `./configure` |
 | Instalar en un proyecto | `./install.sh /ruta/a/tu-proyecto` |
 
-`./configure` sirve `setup/index.html` en `http://127.0.0.1:8765/` (puerto configurable con
-`CONFIGURE_PORT`). Sin Python: `./configure --print` y abre el HTML en el navegador.
+`./configure` sirve `setup/index.html` en todas las interfaces (`CONFIGURE_HOST`, por defecto
+`0.0.0.0`) en el puerto `CONFIGURE_PORT` (por defecto `8765`). En la consola verás
+`http://127.0.0.1:8765/` y, si hay IP LAN, `http://<ip-lan>:8765/` para abrir desde otro PC.
+Solo localhost: `CONFIGURE_HOST=127.0.0.1 ./configure`. Sin Python: `./configure --print`.
 
 Opciones útiles:
 
