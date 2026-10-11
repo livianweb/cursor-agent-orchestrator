@@ -143,7 +143,7 @@ personalizados y distintos quedan intactos hasta `--merge`, `--merge-apply` o `-
 ```bash
 git clone https://github.com/livianweb/cursor-agent-orchestrator.git
 cd cursor-agent-orchestrator
-./install.sh   # wizard: capas A/B/C + Instalar en la UI
+./install.sh   # wizard: Paso 1 Askbox → Paso 2 Instalar → Paso 3 kit (capas A/B/C)
 
 # Capa A (opcional): export ASKBOX_API_URL y ASKBOX_ACCESS_TOKEN en el entorno Cursor
 

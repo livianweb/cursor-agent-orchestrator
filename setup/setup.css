@@ -84,6 +84,11 @@ h1 {
   font-size: 1.05rem;
 }
 
+.lede--compact {
+  margin-top: 0.65rem;
+  font-size: 0.95rem;
+}
+
 main {
   padding: 1.75rem 0 3rem;
   display: flex;
@@ -125,6 +130,21 @@ main {
   border-radius: 999px;
   background: var(--border);
   color: var(--text);
+  margin-right: 0.35rem;
+  margin-bottom: 0.25rem;
+  vertical-align: middle;
+}
+
+.badge--step {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.badge--layer {
+  font-weight: 600;
+  opacity: 0.85;
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 
 .card--a { border-left: 4px solid var(--accent-a); }

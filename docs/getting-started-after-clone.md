@@ -58,7 +58,8 @@ cd cursor-agent-orchestrator
 ./install.sh
 ```
 
-En la UI: **Ruta del proyecto** (absoluta) → **Instalar** (capa B).
+En la UI, de arriba a abajo: **Paso 1 · Askbox** (capa A, opcional) → **Paso 2 · Proyecto**
+(ruta absoluta + **Instalar**, capa B) → **Paso 3** git/auto-update del kit (capa C).
 
 ### 2. Capa A — Askbox LLM (entorno del agente Cursor)
 
