@@ -71,6 +71,20 @@ body {
   gap: 0.35rem 1rem;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.brand-logo {
+  display: block;
+  width: auto;
+  height: 2.75rem;
+  flex-shrink: 0;
+}
+
 .top h1 {
   margin: 0;
   font-size: clamp(1.15rem, 3vw, 1.45rem);
