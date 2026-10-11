@@ -63,6 +63,21 @@ function showInstallPanel(show) {
 btnNewInstall?.addEventListener("click", () => showInstallPanel(true));
 btnCancelInstall?.addEventListener("click", () => showInstallPanel(false));
 
+function setInstallFormLocked(locked) {
+  if (!installForm) return;
+  installForm.querySelectorAll("input, button").forEach((el) => {
+    if (el.id === "install-btn" || el.type === "submit") return;
+    if (locked) el.setAttribute("data-was-disabled", el.disabled ? "1" : "0");
+    if (locked) el.disabled = true;
+    else if (el.getAttribute("data-was-disabled") === "0") el.disabled = false;
+  });
+  if (btnBrowse) {
+    if (locked) btnBrowse.setAttribute("data-was-disabled", btnBrowse.disabled ? "1" : "0");
+    btnBrowse.disabled = locked;
+    else if (btnBrowse.getAttribute("data-was-disabled") === "0") btnBrowse.disabled = false;
+  }
+}
+
 function setInstallUi(state, message) {
   if (!installProgress || !installStatus) return;
   installProgress.classList.remove("hidden", "is-done", "is-error");
@@ -70,6 +85,7 @@ function setInstallUi(state, message) {
   if (state === "busy") {
     installStatus.textContent = message || "Instalando…";
     installStatus.dataset.kind = "busy";
+    setInstallFormLocked(true);
   } else if (state === "ok") {
     installProgress.classList.add("is-done");
     installStatus.textContent = message || "Listo";
@@ -78,7 +94,9 @@ function setInstallUi(state, message) {
     installProgress.classList.add("is-error");
     installStatus.textContent = message || "Error";
     installStatus.dataset.kind = "error";
+    setInstallFormLocked(false);
   }
+  if (state === "ok") setInstallFormLocked(false);
 }
 
 function showLog(text, openDetails) {
@@ -300,11 +318,11 @@ async function loadSetupConfig() {
   try {
     const res = await fetch("/api/setup-config");
     const data = await res.json().catch(() => ({}));
-    if (data.askbox_api_url && askboxUrlInput && !askboxUrlInput.value.trim()) {
-      askboxUrlInput.value = data.askbox_api_url;
-    }
     if (data.askbox_token_configured && askboxTokenInput) {
       askboxTokenInput.setAttribute("data-server-token", "1");
+      if (!askboxTokenInput.value.trim()) {
+        askboxTokenInput.placeholder = "Configurado en el servidor (opcional)";
+      }
     }
     syncDefaultMergeApply();
   } catch {

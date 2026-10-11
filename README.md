@@ -51,6 +51,13 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 
 ## Instalación
 
+**Panel de control (tras clonar en el servidor):**
+
+```bash
+cd /srv/softportweb/cursor-agent-orchestrator && git pull && ./install.sh
+# Abre http://127.0.0.1:8765/  (o la URL Red que imprima)
+```
+
 **URL del repositorio:** `https://github.com/livianweb/cursor-agent-orchestrator.git`
 
 ### Tras `git clone` — configurar el kit (3 capas)

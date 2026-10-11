@@ -9,9 +9,9 @@
 <body>
   <a class="skip" href="#main">Saltar al contenido</a>
   <header class="top">
-    <div class="wrap">
+    <div class="wrap top-inner">
       <h1>Orquestador Cursor</h1>
-      <p class="lede">Panel de control en este equipo: proyectos instalados, nueva instalación o desinstalar piezas del kit.</p>
+      <p class="lede lede--compact">Panel local · instalar o quitar el kit</p>
     </div>
   </header>
 
@@ -19,7 +19,7 @@
     <section class="card card--list" aria-labelledby="registry-heading">
       <div class="section-head">
         <h2 id="registry-heading">Instalaciones</h2>
-        <button type="button" class="btn-secondary" id="btn-new-install">Nueva instalación</button>
+        <button type="button" class="btn-secondary" id="btn-new-install">+ Nueva</button>
       </div>
       <p class="hint kit-meta hidden" id="kit-meta" aria-live="polite"></p>
       <ul class="install-list" id="install-list" aria-live="polite"></ul>
@@ -41,7 +41,7 @@
               spellcheck="false"
               placeholder="/srv/mi-app"
             />
-            <button type="button" class="btn-secondary" id="btn-browse">Explorar…</button>
+            <button type="button" class="btn-secondary" id="btn-browse">Explorar</button>
           </div>
         </div>
 
@@ -78,7 +78,7 @@
             <label class="check"><input type="checkbox" name="flag" value="--dry-run" /> Simular</label>
             <label class="check"><input type="checkbox" name="flag" value="--no-template" /> Sin plantilla de convenciones</label>
             <label class="check"><input type="checkbox" name="flag" value="--merge" /> Fusión askbox</label>
-            <label class="check"><input type="checkbox" name="flag" value="--merge-apply" id="flag-merge-apply" /> Aplicar fusión (por defecto con askbox completo)</label>
+            <label class="check"><input type="checkbox" name="flag" value="--merge-apply" id="flag-merge-apply" /> Fusión askbox (si URL + token)</label>
             <label class="check"><input type="checkbox" name="flag" value="--force" id="flag-force" /> Forzar (backup)</label>
           </fieldset>
           <div class="auto-update-row">
@@ -91,11 +91,6 @@
           </div>
         </details>
 
-        <div class="form-actions">
-          <button type="submit" class="btn-primary" id="install-btn">Instalar</button>
-          <button type="button" class="btn-ghost" id="btn-cancel-install">Cancelar</button>
-        </div>
-
         <div class="install-progress hidden" id="install-progress" aria-live="polite">
           <div class="progress-row">
             <span class="spinner" aria-hidden="true"></span>
@@ -104,6 +99,11 @@
           <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
             <div class="progress-bar"></div>
           </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="install-btn">Instalar</button>
+          <button type="button" class="btn-ghost" id="btn-cancel-install">Cancelar</button>
         </div>
 
         <details class="log-details hidden" id="install-log-details">

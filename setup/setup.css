@@ -59,16 +59,26 @@ body {
 }
 
 .top {
-  padding: 2rem 0 1.25rem;
+  padding: 1.25rem 0 0.85rem;
   border-bottom: 1px solid var(--border);
 }
 
+.top-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+}
+
 .top h1 {
-  margin-bottom: 0.35rem;
+  margin: 0;
+  font-size: clamp(1.15rem, 3vw, 1.45rem);
 }
 
 .top .lede {
-  font-size: 0.95rem;
+  font-size: 0.82rem;
+  margin: 0;
 }
 
 .eyebrow {
@@ -752,6 +762,13 @@ code {
 
 .btn-uninstall {
   align-self: center;
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.btn-uninstall:hover:not(:disabled) {
+  color: #fca5a5;
+  border-color: #f87171;
 }
 
 .badge--ok {
