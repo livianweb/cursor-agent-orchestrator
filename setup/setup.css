@@ -107,7 +107,7 @@ h1 {
 }
 
 main {
-  padding: 1.75rem 0 3rem;
+  padding: 1.75rem 0 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -247,8 +247,8 @@ code {
 }
 
 .foot {
-  border-top: 1px solid var(--border);
-  padding: 1.25rem 0 2rem;
+  margin-top: 2rem;
+  padding: 0 0 2.5rem;
   font-size: 0.85rem;
   color: var(--muted);
 }
