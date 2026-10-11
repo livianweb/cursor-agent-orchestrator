@@ -206,154 +206,17 @@ const editPathEl = document.getElementById("edit-path");
 const editForm = document.getElementById("edit-form");
 const editAskboxUrl = document.getElementById("edit-askbox-url");
 const editAskboxToken = document.getElementById("edit-askbox-token");
-const editReapply = document.getElementById("edit-reapply");
 const editError = document.getElementById("edit-error");
 let editTargetPath = null;
 let installationItems = [];
 let serverAskboxTokenConfigured = false;
 
-const syncModal = document.getElementById("sync-modal");
-const syncPathEl = document.getElementById("sync-path");
-const syncTokenField = document.getElementById("sync-token-field");
-const syncAskboxToken = document.getElementById("sync-askbox-token");
-const syncError = document.getElementById("sync-error");
 const btnSyncAll = document.getElementById("btn-sync-all");
-let syncTargetPath = null;
-let syncTargetRow = null;
 
 function syncNeedsToken(row) {
   const url = (row?.askbox_api_url || "").trim();
   const last4 = row?.askbox_token_last4;
   return Boolean(url && last4 && !serverAskboxTokenConfigured);
-}
-
-async function postInstallationSync(path, token) {
-  const payload = { path };
-  if (token) payload.askbox_access_token = token;
-  const res = await fetch("/api/installations/sync", {
-    method: "POST",
-    headers: apiHeaders(),
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json().catch(() => ({}));
-  return { res, data };
-}
-
-async function runInstallationSync(path, token, uiBtn) {
-  if (uiBtn) {
-    uiBtn.disabled = true;
-    const prev = uiBtn.textContent;
-    uiBtn.textContent = "Actualizando…";
-    try {
-      const { res, data } = await postInstallationSync(path, token);
-      if (res.status === 428 || data.needs_token) {
-        const row = installationItems.find((r) => r.path === path);
-        if (row) openSyncModal(row, { forceToken: true });
-        else window.alert(data.error || "Se necesita el token askbox.");
-        return false;
-      }
-      if (!data.ok) {
-        window.alert(formatInstallSyncError(data));
-        return false;
-      }
-      await loadInstallations();
-      return true;
-    } catch {
-      window.alert("Sin conexión con el servidor.");
-      return false;
-    } finally {
-      uiBtn.disabled = false;
-      uiBtn.textContent = prev;
-    }
-  }
-  return false;
-}
-
-function openSyncModal(row, opts = {}) {
-  const { forceToken = false } = opts;
-  syncTargetPath = row.path;
-  syncTargetRow = row;
-  if (syncPathEl) syncPathEl.textContent = row.path;
-  if (syncAskboxToken) {
-    syncAskboxToken.value = "";
-    syncAskboxToken.placeholder = row.askbox_token_last4
-      ? `Token (••••${row.askbox_token_last4})`
-      : "Token askbox";
-  }
-  const showToken = forceToken || syncNeedsToken(row);
-  syncTokenField?.classList.toggle("hidden", !showToken);
-  if (syncError) {
-    syncError.classList.add("hidden");
-    syncError.textContent = "";
-  }
-  syncModal?.classList.remove("hidden");
-  document.body.classList.add("modal-open");
-  (showToken ? syncAskboxToken : document.getElementById("sync-run"))?.focus();
-}
-
-function closeSyncModal() {
-  syncModal?.classList.add("hidden");
-  document.body.classList.remove("modal-open");
-  syncTargetPath = null;
-  syncTargetRow = null;
-}
-
-document.getElementById("sync-close")?.addEventListener("click", closeSyncModal);
-document.getElementById("sync-cancel")?.addEventListener("click", closeSyncModal);
-document.getElementById("sync-backdrop")?.addEventListener("click", closeSyncModal);
-
-document.getElementById("sync-run")?.addEventListener("click", async () => {
-  if (!syncTargetPath) return;
-  const token = (syncAskboxToken?.value || "").trim();
-  if (syncNeedsToken(syncTargetRow) && !token) {
-    if (syncError) {
-      syncError.textContent = "Introduce el token askbox para fusionar con askbox.";
-      syncError.classList.remove("hidden");
-    }
-    return;
-  }
-  const btn = document.getElementById("sync-run");
-  if (btn) btn.disabled = true;
-  try {
-    const { res, data } = await postInstallationSync(syncTargetPath, token || undefined);
-    if (res.status === 428 || data.needs_token) {
-      syncTokenField?.classList.remove("hidden");
-      if (syncError) {
-        syncError.textContent = data.error || "Se necesita el token askbox.";
-        syncError.classList.remove("hidden");
-      }
-      return;
-    }
-    if (!data.ok) {
-      if (syncError) {
-        syncError.textContent = data.error || "Error al actualizar.";
-        syncError.classList.remove("hidden");
-      }
-      return;
-    }
-    closeSyncModal();
-    await loadInstallations();
-  } catch {
-    if (syncError) {
-      syncError.textContent = "Sin conexión con el servidor.";
-      syncError.classList.remove("hidden");
-    }
-  } finally {
-    if (btn) btn.disabled = false;
-  }
-});
-
-async function syncOneRow(row, btn) {
-  if (row.status === "missing") {
-    window.alert("La ruta del proyecto no existe en el disco.");
-    return;
-  }
-  if (syncNeedsToken(row)) {
-    openSyncModal(row);
-    return;
-  }
-  if (!window.confirm(`¿Sincronizar el orquestador en\n${row.path}?\n(solo install.sh en ese proyecto, no actualiza el kit)`)) return;
-  await runInstallationSync(row.path, undefined, btn);
 }
 
 btnSyncAll?.addEventListener("click", async () => {
@@ -482,7 +345,6 @@ function openEditModal(row) {
       ? `••••${row.askbox_token_last4} (deja vacío para mantener)`
       : "Nuevo token (opcional)";
   }
-  if (editReapply) editReapply.checked = false;
   if (editError) {
     editError.classList.add("hidden");
     editError.textContent = "";
@@ -512,7 +374,7 @@ editForm?.addEventListener("submit", async (ev) => {
   };
   const token = (editAskboxToken?.value || "").trim();
   if (token) payload.askbox_access_token = token;
-  if (editReapply?.checked) payload.reapply = true;
+  payload.reapply = true;
 
   if (editError) {
     editError.classList.add("hidden");
@@ -546,17 +408,27 @@ editForm?.addEventListener("submit", async (ev) => {
     }
     if (!data.ok) {
       if (editError) {
-        const msg = data.error || (res.status >= 400 ? `HTTP ${res.status}` : "No se pudo guardar.");
+        let msg = data.error || (res.status >= 400 ? `HTTP ${res.status}` : "No se pudo guardar.");
+        if (data.reapply_needs_token) {
+          msg = "Metadatos guardados, pero hace falta el token askbox para sincronizar el proyecto.";
+        }
         editError.textContent = msg;
         editError.classList.remove("hidden");
       }
       return;
     }
     if (data.reapply_error) {
-      closeEditModal();
       await loadInstallations();
+      if (data.reapply_needs_token && editError) {
+        editError.textContent =
+          "Datos askbox guardados. Introduce el token y vuelve a guardar para sincronizar el proyecto.";
+        editError.classList.remove("hidden");
+        editAskboxToken?.focus();
+        return;
+      }
+      closeEditModal();
       if (kitUptodate) {
-        kitUptodate.textContent = `Metadatos guardados. Re-aplicación: ${data.reapply_error}`;
+        kitUptodate.textContent = `Metadatos guardados. Sincronización: ${data.reapply_error}`;
         kitUptodate.classList.remove("hidden");
       }
       return;
@@ -603,7 +475,6 @@ async function loadInstallations() {
         <div class="install-row-askbox">${escapeHtml(formatAskboxRow(row))}</div>
         <div class="install-row-meta">${formatDate(row.installed_at)}</div>
         <div class="install-row-actions">
-          <button type="button" class="btn-ghost btn-sync" data-action="installation-sync" title="Re-ejecutar install.sh solo en este proyecto" data-path="${escapeAttr(row.path)}"${row.status === "missing" ? " disabled" : ""}>Sincronizar</button>
           <button type="button" class="btn-ghost btn-edit" data-path="${escapeAttr(row.path)}">Editar</button>
           <button type="button" class="btn-ghost btn-uninstall" data-path="${escapeAttr(row.path)}">Desinstalar</button>
         </div>
@@ -618,13 +489,6 @@ async function loadInstallations() {
         const path = btn.getAttribute("data-path");
         const row = items.find((r) => r.path === path);
         if (row) openEditModal(row);
-      });
-    });
-    installList.querySelectorAll(".btn-sync[data-action='installation-sync']").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const path = btn.getAttribute("data-path");
-        const row = items.find((r) => r.path === path);
-        if (row) syncOneRow(row, btn);
       });
     });
   } catch {

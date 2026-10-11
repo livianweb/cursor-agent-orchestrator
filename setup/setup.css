@@ -369,6 +369,16 @@ code {
   margin: 0 1.15rem 1rem;
 }
 
+.modal-panel .edit-sync-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.modal-form-actions {
+  padding-bottom: 1.15rem;
+  margin-top: 0.25rem;
+}
+
 .auto-update-row {
   display: flex;
   flex-wrap: wrap;
@@ -975,7 +985,7 @@ body.modal-open {
 .modal-footer {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 1rem 1.15rem;
-  border-top: 1px solid var(--border);
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 1.15rem 1.15rem;
+  margin-top: 0.25rem;
 }

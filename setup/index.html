@@ -126,27 +126,6 @@
 
   </main>
 
-  <div class="modal hidden" id="sync-modal" role="dialog" aria-modal="true" aria-labelledby="sync-title">
-    <div class="modal-backdrop" id="sync-backdrop"></div>
-    <div class="modal-panel">
-      <header class="modal-header">
-        <h2 id="sync-title">Actualizar instalación</h2>
-        <button type="button" class="btn-ghost modal-close" id="sync-close" aria-label="Cerrar">✕</button>
-      </header>
-      <p class="edit-path" id="sync-path"></p>
-      <p class="hint" id="sync-hint">Vuelve a copiar o fusionar las piezas del orquestador en este proyecto.</p>
-      <label class="field hidden" id="sync-token-field" for="sync-askbox-token">
-        <span class="field-label">Token askbox</span>
-        <input id="sync-askbox-token" type="password" autocomplete="off" spellcheck="false" />
-      </label>
-      <p class="browse-error hidden" id="sync-error" role="alert"></p>
-      <footer class="modal-footer">
-        <button type="button" class="btn-primary" id="sync-run">Actualizar</button>
-        <button type="button" class="btn-ghost" id="sync-cancel">Cancelar</button>
-      </footer>
-    </div>
-  </div>
-
   <div class="modal hidden" id="edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-title">
     <div class="modal-backdrop" id="edit-backdrop"></div>
     <div class="modal-panel">
@@ -164,15 +143,12 @@
           <span class="field-label">Token (opcional, solo si cambias la clave)</span>
           <input id="edit-askbox-token" type="password" autocomplete="off" spellcheck="false" placeholder="••••last4 guardado" />
         </label>
-        <label class="check check--field" for="edit-reapply">
-          <input type="checkbox" id="edit-reapply" />
-          <span class="check-text">Re-aplicar fusión al guardar</span>
-        </label>
+        <p class="hint edit-sync-hint">Al guardar se actualizan los datos askbox y se vuelve a ejecutar install.sh en el proyecto.</p>
         <p class="browse-error hidden" id="edit-error" role="alert"></p>
-        <footer class="modal-footer">
+        <div class="form-actions modal-form-actions">
           <button type="submit" class="btn-primary" id="edit-save">Guardar</button>
           <button type="button" class="btn-ghost" id="edit-cancel">Cancelar</button>
-        </footer>
+        </div>
       </form>
     </div>
   </div>
@@ -190,10 +166,10 @@
       </div>
       <ul class="browse-list" id="browse-list"></ul>
       <p class="browse-error hidden" id="browse-error" role="alert"></p>
-      <footer class="modal-footer">
+      <div class="modal-footer">
         <button type="button" class="btn-primary" id="browse-use" disabled>Usar esta carpeta</button>
         <button type="button" class="btn-ghost" id="browse-cancel">Cancelar</button>
-      </footer>
+      </div>
     </div>
   </div>
 
