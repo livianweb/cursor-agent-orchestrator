@@ -58,8 +58,8 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 ```bash
 git clone https://github.com/livianweb/cursor-agent-orchestrator.git
 cd cursor-agent-orchestrator
-./install.sh           # wizard en http://127.0.0.1:8765/ (capas A/B/C + botón Instalar)
-# En la UI: ruta absoluta del proyecto → Instalar (o CLI: ./install.sh /ruta/a/tu-proyecto)
+./install.sh           # asistente UI (http://127.0.0.1:8765/) — no uses sudo
+# ./install.sh /ruta/a/tu-proyecto  → instalación CLI sin wizard
 ```
 
 Pasos detallados: [`docs/getting-started-after-clone.md`](docs/getting-started-after-clone.md).

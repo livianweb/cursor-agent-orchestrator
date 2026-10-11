@@ -12,6 +12,8 @@ por separado; la configuración tiene **tres capas** (ver también [`git-and-ask
 | Wizard (guía + instalar en UI) | `./install.sh` o `./configure` |
 | Instalar por CLI | `./install.sh /ruta/a/tu-proyecto` |
 
+**Resumen:** `./install.sh` = asistente en el navegador; `./install.sh /ruta` = instalación por CLI (sin wizard).
+
 `./install.sh` sin argumentos arranca el servidor del wizard (`scripts/setup_server.py`) en
 `CONFIGURE_HOST` (por defecto `0.0.0.0`) y `CONFIGURE_PORT` (por defecto `8765`). En la consola
 verás `http://127.0.0.1:8765/` y, si hay IP LAN, `http://<ip-lan>:8765/` para abrir desde otro PC.

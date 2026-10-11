@@ -80,6 +80,13 @@ def validate_install_path(raw: str) -> Path:
         if not parent.exists():
             raise ValueError(f"no se puede crear: el directorio padre no existe ({parent})")
 
+    kit_root = ROOT.resolve()
+    if resolved == kit_root:
+        raise ValueError(
+            "no instales en la raíz del kit del orquestador; "
+            "usa una ruta de proyecto distinta (p. ej. /ruta/a/tu-app)"
+        )
+
     return resolved
 
 

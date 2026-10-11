@@ -31,8 +31,23 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KIT_ROOT="$SCRIPT_DIR"
 MERGE_HELPER="$SCRIPT_DIR/scripts/install-merge-askbox.py"
 WIZARD_HELPER="$SCRIPT_DIR/scripts/run-wizard.sh"
+
+warn_if_root() {
+  if [ "$(id -u)" -eq 0 ]; then
+    echo "Aviso: no uses sudo; el wizard y la instalación no necesitan root." >&2
+  fi
+}
+
+run_wizard() {
+  warn_if_root
+  if [ ! -x "$WIZARD_HELPER" ]; then
+    chmod +x "$WIZARD_HELPER" 2>/dev/null || true
+  fi
+  exec bash "$WIZARD_HELPER"
+}
 
 WIZARD=0
 TARGET_DIR=""
@@ -65,15 +80,18 @@ for arg in "$@"; do
   esac
 done
 
-if [ "$WIZARD" = "1" ] || [ $# -eq 0 ]; then
-  if [ ! -x "$WIZARD_HELPER" ]; then
-    chmod +x "$WIZARD_HELPER" 2>/dev/null || true
-  fi
-  exec bash "$WIZARD_HELPER"
+# Sin ruta: siempre wizard (nunca $PWD ni la raíz del kit).
+if [ $# -eq 0 ]; then
+  run_wizard
+fi
+
+if [ "$WIZARD" = "1" ] && [ -z "$TARGET_DIR" ]; then
+  run_wizard
 fi
 
 if [ -z "$TARGET_DIR" ]; then
-  echo "ERROR: falta RUTA_PROYECTO_DESTINO (o ejecuta ./install.sh sin argumentos para el wizard)." >&2
+  echo "ERROR: indica ruta de proyecto: ./install.sh /ruta/proyecto" >&2
+  echo "       o ejecuta sin argumentos para abrir el asistente: ./install.sh" >&2
   exit 1
 fi
 
@@ -83,6 +101,14 @@ if [ "$FORCE" = "1" ] && [ "$MERGE" = "1" ]; then
 fi
 
 TARGET_DIR="$(cd "$TARGET_DIR" 2>/dev/null && pwd || { echo "ERROR: no existe el directorio destino: $TARGET_DIR" >&2; exit 1; })"
+
+if [ "$TARGET_DIR" = "$KIT_ROOT" ]; then
+  echo "ERROR: no instales el kit sobre sí mismo ($KIT_ROOT)." >&2
+  echo "       Usa ./install.sh sin argumentos (asistente en el navegador) o ./install.sh /ruta/a/tu-proyecto." >&2
+  exit 1
+fi
+
+warn_if_root
 
 echo "Kit origen:      $SCRIPT_DIR"
 echo "Proyecto destino: $TARGET_DIR"
