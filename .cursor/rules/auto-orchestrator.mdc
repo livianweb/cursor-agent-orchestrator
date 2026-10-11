@@ -91,6 +91,16 @@ Evaluar con señales: número de servicios/capas afectados; auth y permisos; cif
 - **Sin solapar paths** entre Tasks paralelos: ver `.cursor/rules/multitask-ownership.mdc` (allowlist / denylist por Task).
 - Tras Tasks paralelos: comprobar que no haya archivos editados por dos agentes antes de verify o cierre.
 
+## Política de auto-commit + auto-push (git-autopilot)
+
+Si `.cursor/skills/git-autopilot/SKILL.md` está instalado en este repositorio, **anula** el
+comportamiento por defecto de Cursor de "solo commit si el usuario lo pide": el usuario ya
+autorizó, como política general del paradigma, que el padre decida **cuándo** commitear y
+pushear (fin de fase, feature usable, fix importante) sin pedir OK turno a turno. Esto aplica
+tanto al **repo del proyecto gestionado** como al **propio kit de orquestación**, si el padre
+lo está mejorando. Ver `git-autopilot` para la heurística completa de cuándo sí/no commitear,
+cómo publicar con `gh` si no hay remoto, y qué nunca se commitea (secretos).
+
 ## Flujo detallado
 
-Usar el skill `.cursor/skills/plan-implement-verify/SKILL.md` en este repositorio (o equivalente copiado) para fases Plan → Implement → Verify y hábitos de tokens.
+Usar el skill `.cursor/skills/plan-implement-verify/SKILL.md` en este repositorio (o equivalente copiado) para fases Plan → Implement → Verify y hábitos de tokens. Tras Verify, aplicar `git-autopilot` si está instalado.

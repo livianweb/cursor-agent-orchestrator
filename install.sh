@@ -96,11 +96,13 @@ copy_file "$SCRIPT_DIR/.cursor/rules/multitask-ownership.mdc" "$TARGET_DIR/.curs
 echo
 echo "## Skills portables"
 copy_file "$SCRIPT_DIR/.cursor/skills/plan-implement-verify/SKILL.md" "$TARGET_DIR/.cursor/skills/plan-implement-verify/SKILL.md"
+copy_file "$SCRIPT_DIR/.cursor/skills/git-autopilot/SKILL.md" "$TARGET_DIR/.cursor/skills/git-autopilot/SKILL.md"
 
 if [ "$COPY_TEMPLATE" = "1" ]; then
   echo
-  echo "## Plantilla de convenciones propias (inerte hasta que la renombres)"
+  echo "## Plantillas (inertes hasta que las adaptes)"
   copy_file "$SCRIPT_DIR/templates/project-conventions.mdc.template" "$TARGET_DIR/.cursor/rules/project-conventions.mdc.template"
+  copy_file "$SCRIPT_DIR/templates/git-settings-screen.md" "$TARGET_DIR/.cursor/templates/git-settings-screen.md"
 fi
 
 echo

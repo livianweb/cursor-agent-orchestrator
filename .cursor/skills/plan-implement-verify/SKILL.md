@@ -112,6 +112,13 @@ Desde la raíz del repositorio, ejecutar lo que aplique:
 
 Si algo falla, corregir (delegar o padre) antes de dar por cerrado.
 
+## Fase 4 — Git autopilot (si `git-autopilot` está instalado)
+
+Tras Verify en verde, si `.cursor/skills/git-autopilot/SKILL.md` está presente en el repo, el
+padre **decide y ejecuta** commit + push sin pedir OK al usuario (ver esa skill para la
+heurística completa de cuándo sí/no commitear y cómo publicar con `gh` si falta remoto). No
+confundir con la Fase 3: primero build/tests/health en verde, **luego** commit/push.
+
 ## Hábitos que ahorran tokens
 
 - Los subagentes **no** ven el chat del usuario: repetir solo contexto necesario.
