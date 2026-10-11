@@ -11,15 +11,17 @@ Hay una implementación de referencia completa (FastAPI + Next.js) en askbox:
 
 - **Nunca** devolver URLs de remoto con credenciales embebidas (`https://usuario:token@host/...`
   → sanea a `https://host/...` antes de responder).
-- **Nunca** ejecutar commit/push automático desde este endpoint: esta pantalla **lee** estado y
-  **gestiona conexión/preferencias**; el commit/push autónomo lo decide el agente siguiendo
-  `git-autopilot`, o un proceso separado con acceso explícito.
+- **Nunca** ejecutar commit automático desde este endpoint: esta pantalla **lee** estado y
+  **gestiona conexión/preferencias**; el commit autónomo lo decide el agente siguiendo
+  `git-autopilot`. Crear remoto y `push` explícito (acción del usuario/agente vía API) sí son
+  válidos si hay credenciales.
 - Si el proceso que sirve la API no tiene acceso al `.git` del repo (contenedor sin ese
   volumen montado), responder con un estado degradado explícito, no simular datos ni fallar
   con un 500 genérico.
 - Las preferencias (no secretas) se guardan **en el propio repo** (archivo versionable, p. ej.
   `.<app>/git-settings.json`), para que viajen con el proyecto. Las credenciales viven fuera:
-  `gh auth`, variables de entorno o un gestor de secretos del host/contenedor.
+  `gh auth`, variables de entorno, un gestor de secretos del host/contenedor, o **cifradas en la
+  BD de la app** (ver «GitHub token» más abajo).
 
 ## Endpoints sugeridos
 
@@ -79,9 +81,33 @@ Errores esperables y cómo comunicarlos:
 | Caso | Código sugerido | Mensaje |
 |---|---|---|
 | Repo no accesible | 503 `git_unavailable` | Indicar cómo montar/acceder al repo |
-| `gh` no instalado/autenticado y se pidió `create` | 501 `gh_not_available` | Indicar `gh auth login` o crear el remoto manualmente y usar `url` |
+| Ni `gh` autenticado ni GitHub token guardado y se pidió `create` | 501 `gh_not_available` | Indicar guardar un token en la pantalla, `gh auth login`, o conectar un remoto con `url` |
 | Falló `git remote add/set-url` | 502 `git_remote_failed` | Incluir el stderr resumido (sin credenciales) |
 | Body sin `url` ni `create` | 422 `missing_url_or_create` | — |
+
+### GitHub token (opcional, recomendado si el host no tiene `gh` autenticado)
+
+Permite que la app (y un agente vía API) cree el remoto y haga push sin `gh`.
+
+| Método | Ruta | Comportamiento |
+|---|---|---|
+| `GET` | `/settings/git/github-token` | `{ "github_token_configured": true, "github_token_last4": "WXYZ" }` — **nunca** el token |
+| `PUT`/`POST` | `/settings/git/github-token` | Body `{ "token": "..." }`; valida formato, **cifra** (AES-GCM con la master key de la app) y guarda; reemplaza el anterior. Respuesta = `GET` |
+| `DELETE` | `/settings/git/github-token` | Borra el token |
+| `POST` | `/settings/git/push` | `{ remote?, branch? }` → push usando el token si el remoto es `https://github.com/...` |
+
+- `status` incluye también `github_token_configured` / `github_token_last4`.
+- `POST /remote` con `create: true`: usa `gh` si está autenticado; si no, el token guardado vía
+  `POST https://api.github.com/user/repos` (`slug` obligatorio) y conecta el remoto con la URL
+  limpia (`clone_url`, sin credenciales). Errores: 501 `gh_not_available` (ni `gh` ni token),
+  401 `github_token_invalid`, 409 `github_repo_exists`, 502 `github_push_failed`.
+- Push con token: pasarlo solo por **entorno del subproceso** (`GIT_CONFIG_COUNT/KEY/VALUE` con
+  `http.https://github.com/.extraheader = AUTHORIZATION: basic base64(x-access-token:TOKEN)`),
+  nunca en argv ni en la URL del remoto ni en `.git/config`; redactar el token de cualquier
+  error/log antes de responder.
+- UI: input `type=password` (`autocomplete=new-password`), botón guardar/reemplazar, botón borrar,
+  indicador «configurado (…last4)»; vaciar el input tras guardar.
+- Opcional: soporte multi-repo con `?repo=<nombre>` limitado a una allowlist de repos montados.
 
 ## Campos de preferencias (forma mínima)
 
