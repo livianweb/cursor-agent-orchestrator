@@ -27,7 +27,7 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 | `templates/git-settings-screen.md` | Guía de contrato (endpoints, forma de datos, UI sugerida) para construir la pantalla de configuración Git de **tu** proyecto. |
 | `docs/git-and-askbox.md` | Las tres capas (LLM / git proyecto / git kit) y cómo no mezclarlas. |
 | `.askbox/git-settings.json.example` | Preferencias git no secretas por repo (copiar a `.askbox/git-settings.json` en proyecto o kit). |
-| `install.sh` (sin args) | Wizard HTTP en `:8765` (`setup/` + `POST /api/install`). |
+| `install.sh` (sin args) | Arranca el panel HTTP en `:8765` (registro, nueva instalación, desinstalar, explorador de carpetas). |
 | `configure` | Alias de `./install.sh`; utilidades `--kit-git`, `--open-file`, `--print`. |
 | `setup/index.html` | UI del wizard (instalar en ruta destino desde el navegador). |
 | `docs/getting-started-after-clone.md` | Flujo canónico clone → install → UI → git por capa. |

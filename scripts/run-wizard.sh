@@ -17,9 +17,10 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "cursor-agent-orchestrator — configuración post-clone"
-echo "  Repo:    $ROOT"
-echo "  Docs:    $ROOT/docs/getting-started-after-clone.md"
+echo "cursor-agent-orchestrator — panel de control"
+echo "  Repo:  $ROOT"
+echo "  Abre:  http://127.0.0.1:$PORT/"
+echo "  Gestiona instalaciones en el navegador (lista, nueva, desinstalar)."
 echo
 
 if command -v xdg-open >/dev/null 2>&1; then

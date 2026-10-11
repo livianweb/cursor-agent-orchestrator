@@ -5,10 +5,12 @@
 # Válido para repos NUEVOS (sin .cursor/) y EXISTENTES (con rules/skills/hooks propios).
 # Solo copia piezas del orquestador; no borra ni toca archivos fuera de la lista.
 #
-# Uso:
-#   ./install.sh                    asistente visual (HTTP :8765, setup/ + API install)
+# Uso principal:
+#   ./install.sh                    panel de control en el navegador (:8765)
 #   ./install.sh --wizard           igual que sin argumentos
-#   ./install.sh [RUTA_PROYECTO_DESTINO] [opciones]
+#
+# Legacy (CLI, sin UI): ./install.sh [RUTA_PROYECTO_DESTINO] [opciones]
+# La gestión de instalaciones (lista, nueva, desinstalar) es en el navegador.
 #
 # Opciones:
 #   --force         backup (.bak-FECHA) + sobrescribe si el archivo difiere
@@ -325,13 +327,25 @@ register_orchestrator_target() {
   if [ "${ORCHESTRATOR_SKIP_REGISTER_TARGET:-}" = "1" ]; then
     return 0
   fi
-  local targets_file="$SCRIPT_DIR/.askbox/orchestrator-targets"
-  mkdir -p "$SCRIPT_DIR/.askbox"
-  if [ -f "$targets_file" ] && grep -qxF "$TARGET_DIR" "$targets_file" 2>/dev/null; then
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "  (aviso: python3 no disponible — no se actualizó el registro de instalaciones)" >&2
     return 0
   fi
-  echo "$TARGET_DIR" >> "$targets_file"
-  echo "  + auto-update: registrado en .askbox/orchestrator-targets"
+  local reg_helper="$SCRIPT_DIR/scripts/installations_registry.py"
+  if [ ! -f "$reg_helper" ]; then
+    return 0
+  fi
+  local flags_json="[]"
+  if [ "$MERGE_APPLY" = "1" ]; then
+    flags_json='["--merge-apply"]'
+  elif [ "$MERGE" = "1" ]; then
+    flags_json='["--merge"]'
+  elif [ "$FORCE" = "1" ]; then
+    flags_json='["--force"]'
+  fi
+  if python3 "$reg_helper" register "$TARGET_DIR" "$flags_json" 2>/dev/null; then
+    echo "  + registro: .askbox/installations.json"
+  fi
 }
 
 register_orchestrator_target

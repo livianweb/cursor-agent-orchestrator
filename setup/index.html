@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Instalar orquestador</title>
+  <title>Panel · Orquestador Cursor</title>
   <link rel="stylesheet" href="setup.css" />
 </head>
 <body>
@@ -11,63 +11,66 @@
   <header class="top">
     <div class="wrap">
       <h1>Orquestador Cursor</h1>
-      <p class="lede">Configura askbox (opcional) e instala rules/skills en tu proyecto.</p>
+      <p class="lede">Panel de control en este equipo: proyectos instalados, nueva instalación o desinstalar piezas del kit.</p>
     </div>
   </header>
 
   <main id="main" class="wrap">
-    <section class="card card--a" aria-labelledby="askbox-heading">
-      <p class="step-label">1 · Opcional</p>
-      <h2 id="askbox-heading">Askbox</h2>
-      <form id="askbox-env-form" class="stack-form" novalidate>
-        <label class="field" for="askbox-api-url">
-          <span class="field-label">URL</span>
-          <input
-            id="askbox-api-url"
-            name="askbox_api_url"
-            type="url"
-            inputmode="url"
-            autocomplete="off"
-            spellcheck="false"
-            value=""
-            placeholder="https://…/api"
-          />
-        </label>
-        <label class="field" for="askbox-access-token">
-          <span class="field-label">Token</span>
-          <input
-            id="askbox-access-token"
-            name="askbox_access_token"
-            type="password"
-            autocomplete="off"
-            spellcheck="false"
-            value=""
-            placeholder="ab_live_…"
-          />
-        </label>
-        <div class="form-actions">
-          <button type="button" class="btn-ghost" id="askbox-copy-env">Copiar para el entorno</button>
-          <span class="form-status" id="askbox-env-status" role="status" aria-live="polite"></span>
-        </div>
-      </form>
+    <section class="card card--list" aria-labelledby="registry-heading">
+      <div class="section-head">
+        <h2 id="registry-heading">Instalaciones</h2>
+        <button type="button" class="btn-secondary" id="btn-new-install">Nueva instalación</button>
+      </div>
+      <p class="hint kit-meta hidden" id="kit-meta" aria-live="polite"></p>
+      <ul class="install-list" id="install-list" aria-live="polite"></ul>
+      <p class="empty-state hidden" id="install-empty">Aún no hay proyectos registrados.</p>
     </section>
 
-    <section class="card card--b card--install" aria-labelledby="install-heading">
-      <p class="step-label">2</p>
-      <h2 id="install-heading">Instalar</h2>
+    <section class="card card--install hidden" id="install-panel" aria-labelledby="install-heading">
+      <h2 id="install-heading">Nueva instalación</h2>
       <form id="install-form" class="stack-form" novalidate>
-        <label class="field" for="project-path">
-          <span class="field-label">Ruta del proyecto</span>
-          <input
-            id="project-path"
-            name="path"
-            type="text"
-            required
-            autocomplete="off"
-            spellcheck="false"
-            placeholder="/srv/mi-app"
-          />
-        </label>
+        <div class="field">
+          <label class="field-label" for="project-path">Ruta del proyecto</label>
+          <div class="path-row">
+            <input
+              id="project-path"
+              name="path"
+              type="text"
+              required
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="/srv/mi-app"
+            />
+            <button type="button" class="btn-secondary" id="btn-browse">Explorar…</button>
+          </div>
+        </div>
+
+        <details class="askbox-block">
+          <summary>Askbox (opcional)</summary>
+          <label class="field" for="askbox-api-url">
+            <span class="field-label">URL</span>
+            <input
+              id="askbox-api-url"
+              name="askbox_api_url"
+              type="url"
+              inputmode="url"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="https://…/api"
+            />
+          </label>
+          <label class="field" for="askbox-access-token">
+            <span class="field-label">Token</span>
+            <input
+              id="askbox-access-token"
+              name="askbox_access_token"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="ab_live_…"
+            />
+          </label>
+        </details>
 
         <details class="advanced">
           <summary>Avanzado</summary>
@@ -86,10 +89,12 @@
             </label>
             <span class="auto-update-state" id="auto-update-state" role="status" aria-live="polite">Activo</span>
           </div>
-          <p class="hint auto-update-hint">Mantiene el kit al día en esta máquina (reabre el asistente para cambiar opciones).</p>
         </details>
 
-        <button type="submit" class="btn-install" id="install-btn">Instalar</button>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="install-btn">Instalar</button>
+          <button type="button" class="btn-ghost" id="btn-cancel-install">Cancelar</button>
+        </div>
 
         <div class="install-progress hidden" id="install-progress" aria-live="polite">
           <div class="progress-row">
@@ -111,6 +116,7 @@
     <details class="card card--more" id="more-section">
       <summary>Más</summary>
       <div class="more-inner">
+        <p class="hint">Vuelve a ejecutar <code>./install.sh</code> en cualquier momento para reabrir este panel.</p>
         <h3 class="more-title">Git de este kit</h3>
         <div class="cmd" data-copy="./configure --kit-git&#10;gh auth login&#10;git push origin master">
           <pre><code>./configure --kit-git
@@ -121,6 +127,26 @@ git push origin master</code></pre>
       </div>
     </details>
   </main>
+
+  <div class="modal hidden" id="browse-modal" role="dialog" aria-modal="true" aria-labelledby="browse-title">
+    <div class="modal-backdrop" id="browse-backdrop"></div>
+    <div class="modal-panel">
+      <header class="modal-header">
+        <h2 id="browse-title">Elegir carpeta</h2>
+        <button type="button" class="btn-ghost modal-close" id="browse-close" aria-label="Cerrar">✕</button>
+      </header>
+      <p class="browse-path" id="browse-current-path"></p>
+      <div class="browse-toolbar">
+        <button type="button" class="btn-ghost" id="browse-up" disabled>Subir nivel</button>
+      </div>
+      <ul class="browse-list" id="browse-list"></ul>
+      <p class="browse-error hidden" id="browse-error" role="alert"></p>
+      <footer class="modal-footer">
+        <button type="button" class="btn-primary" id="browse-use" disabled>Usar esta carpeta</button>
+        <button type="button" class="btn-ghost" id="browse-cancel">Cancelar</button>
+      </footer>
+    </div>
+  </div>
 
   <footer class="foot">
     <div class="wrap">
