@@ -652,42 +652,6 @@ code {
   cursor: pointer;
 }
 
-.card--more {
-  padding: 0;
-  border-left: 4px solid var(--accent-c);
-}
-
-.card--more > summary {
-  padding: 1rem 1.35rem;
-  cursor: pointer;
-  font-weight: 600;
-  list-style: none;
-}
-
-.card--more > summary::-webkit-details-marker {
-  display: none;
-}
-
-.card--more > summary::after {
-  content: " ▾";
-  color: var(--muted);
-  font-weight: 400;
-}
-
-.card--more[open] > summary::after {
-  content: " ▴";
-}
-
-.more-inner {
-  padding: 0 1.35rem 1.25rem;
-  border-top: 1px solid var(--border);
-}
-
-.more-title {
-  margin: 1rem 0 0.5rem;
-  font-size: 0.95rem;
-}
-
 .install-log {
   margin: 0.5rem 0 0;
   max-height: 12rem;
