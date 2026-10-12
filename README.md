@@ -22,7 +22,7 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 | `.cursor/rules/auto-orchestrator.mdc` | **Plan vs. directo**, modos de plan A/B/C, presupuesto Multitask, niveles (`fast`/`balanced`/`strong`/`strong-thinking`), slugs por familia de coste (Composer/Grok medio; Opus solo `strong-thinking` justificado); implement/verify nunca Opus. |
 | `.cursor/rules/multitask-ownership.mdc` | Evita que Tasks en paralelo se pisen: allowlist/denylist por Task, qué va en serie, qué archivos son "calientes" (ownership único). |
 | `.cursor/skills/plan-implement-verify/SKILL.md` | El flujo paso a paso: Decidir → Plan (si aplica) → Directo (si aplica) → Implement → Verify → Git autopilot, con niveles por tipo de subagente. |
-| `.cursor/skills/askbox-first/SKILL.md` | Para UI/visual y copy/docs: usar primero el gateway [askbox](https://github.com) (`POST /v1/ask`); fallback a subagentes Cursor si falla, no aprueba o no hay token/URL en el entorno. |
+| `.cursor/skills/askbox-first/SKILL.md` | Para UI, textos (copy/docs), Q&A, borradores e ideas: usar primero el gateway askbox (`POST /v1/ask`); Cursor para implementación en repo, explore, plan C y verify; fallback si falla o no hay `ASKBOX_*`. |
 | `.cursor/skills/git-autopilot/SKILL.md` | Política de auto-commit + auto-push (anula el "solo commit si el usuario lo pide" por defecto de Cursor) y contrato de la pantalla de configuración Git por proyecto. |
 | `templates/git-settings-screen.md` | Guía de contrato (endpoints, forma de datos, UI sugerida) para construir la pantalla de configuración Git de **tu** proyecto. |
 | `docs/git-and-askbox.md` | Las tres capas (LLM / git proyecto / git kit) y cómo no mezclarlas. |
@@ -187,7 +187,7 @@ $EDITOR .cursor/rules/mi-proyecto-conventions.mdc
 
 A partir de ahí, cualquier instrucción al padre en modo Auto sigue el flujo:
 **decide plan o directo → (plan si aplica) → implementa → verifica → informa**, anunciando
-siempre la decisión tomada, si la vía fue askbox o Cursor, el nivel de capacidad y el slug resuelto en esa sesión (UI/copy: askbox-first cuando la skill está instalada).
+siempre la decisión tomada, si la vía fue askbox o Cursor, el nivel de capacidad y el slug resuelto en esa sesión (UI, textos, Q&A y borradores: askbox-first cuando la skill está instalada).
 
 ## Askbox vs orquestador vs git (3 configs)
 
