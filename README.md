@@ -19,7 +19,7 @@ Este kit instala tres piezas que resuelven eso de forma genérica:
 
 | Archivo | Qué hace |
 |---|---|
-| `.cursor/rules/auto-orchestrator.mdc` | Heurística **plan vs. directo**, niveles de capacidad (`fast`/`balanced`/`strong`/`strong-thinking`), resolución dinámica a slug (sin tablas fijas) con **preferencia Composer** para ahorro de coste; escalar a otros modelos solo en `strong*`. |
+| `.cursor/rules/auto-orchestrator.mdc` | **Plan vs. directo**, modos de plan A/B/C, presupuesto Multitask, niveles (`fast`/`balanced`/`strong`/`strong-thinking`), slugs por familia de coste (Composer/Grok medio; Opus solo `strong-thinking` justificado); implement/verify nunca Opus. |
 | `.cursor/rules/multitask-ownership.mdc` | Evita que Tasks en paralelo se pisen: allowlist/denylist por Task, qué va en serie, qué archivos son "calientes" (ownership único). |
 | `.cursor/skills/plan-implement-verify/SKILL.md` | El flujo paso a paso: Decidir → Plan (si aplica) → Directo (si aplica) → Implement → Verify → Git autopilot, con niveles por tipo de subagente. |
 | `.cursor/skills/askbox-first/SKILL.md` | Para UI/visual y copy/docs: usar primero el gateway [askbox](https://github.com) (`POST /v1/ask`); fallback a subagentes Cursor si falla, no aprueba o no hay token/URL en el entorno. |
