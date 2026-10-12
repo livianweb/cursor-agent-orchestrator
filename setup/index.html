@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>(function(){try{var n='orchestrator-theme';var t=null;var p=document.cookie.split(';');for(var i=0;i<p.length;i++){var s=p[i].trim();if(s.indexOf(n+'=')===0){var v=decodeURIComponent(s.slice(n.length+1));if(v==='light'||v==='dark')t=v;break;}}if(!t){t='dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
   <title>Panel · Orquestador Cursor</title>
   <link rel="icon" type="image/webp" sizes="32x32" href="assets/favicon-32.webp" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
@@ -26,6 +27,7 @@
           />
         </picture>
         <h1>Orquestador Cursor</h1>
+        <button type="button" class="theme-toggle-btn" id="theme-toggle"></button>
       </div>
       <p class="lede lede--compact">Panel local · instalar o quitar el kit</p>
     </div>
@@ -197,6 +199,7 @@
       </p>
     </div>
   </footer>
+  <script src="theme.js"></script>
   <script src="setup.js"></script>
 </body>
 </html>

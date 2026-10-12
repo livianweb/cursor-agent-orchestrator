@@ -1,10 +1,4 @@
 :root {
-  color-scheme: light dark;
-  --bg: #0f1419;
-  --surface: #1a2332;
-  --border: #2d3a4d;
-  --text: #e8eef5;
-  --muted: #9aabbd;
   --accent-a: #6ee7b7;
   --accent-b: #93c5fd;
   --accent-c: #fcd34d;
@@ -14,14 +8,22 @@
   --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f4f6f9;
-    --surface: #fff;
-    --border: #d8dee8;
-    --text: #1a2332;
-    --muted: #5a6578;
-  }
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --border: #2d3a4d;
+  --text: #e8eef5;
+  --muted: #9aabbd;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f6f9;
+  --surface: #fff;
+  --border: #d8dee8;
+  --text: #1a2332;
+  --muted: #5a6578;
 }
 
 *,
@@ -76,6 +78,34 @@ body {
   align-items: center;
   gap: 0.55rem;
   min-width: 0;
+  flex: 1;
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  margin-left: auto;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.theme-toggle-btn:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+.theme-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent-b);
+  outline-offset: 2px;
 }
 
 .brand-logo {
